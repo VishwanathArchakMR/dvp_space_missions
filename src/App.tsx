@@ -30,17 +30,24 @@ function Panel({
   children,
   wide = false,
   badge,
-  tools
+  tools,
+  bgImage,
+  className = ''
 }: {
   title: string;
   children: React.ReactNode;
   wide?: boolean;
   badge?: string;
   tools?: React.ReactNode;
+  bgImage?: string;
+  className?: string;
 }) {
   return (
-    <section className={'panel ' + (wide ? 'wide' : '')}>
-      <div className="flex items-center justify-between mb-3">
+    <section
+      className={`panel ${wide ? 'wide' : ''} ${bgImage ? 'has-bg-image' : ''} ${className}`}
+      style={bgImage ? { backgroundImage: `url('${bgImage}')` } : undefined}
+    >
+      <div className="flex items-center justify-between mb-3 relative z-10">
         <div className="flex items-center gap-2">
           <span className="panel-title mb-0">{title}</span>
           {badge && (
@@ -51,7 +58,7 @@ function Panel({
         </div>
         {tools && <div className="flex items-center gap-2">{tools}</div>}
       </div>
-      {children}
+      <div className="relative z-10">{children}</div>
     </section>
   );
 }
@@ -678,30 +685,32 @@ export default function App() {
         </div>
       </nav>
 
-      {/* Hero Header */}
-      <header>
-        <div>
-          <p className="eyebrow">A VISUAL ANALYSIS OF GLOBAL SPACE MISSIONS</p>
-          <h1>
-            Explore the arcs of<br />
-            <em>human ambition.</em>
-          </h1>
-          <p className="lede">
-            Web-based interactive data visualization and analysis platform inspired by Tableau.
-          </p>
-        </div>
-        <div className="dataset cursor-pointer" onClick={() => setIsDataHealthOpen(true)}>
-          <Database />
-          <b>{rows.length.toLocaleString()}</b>
-          <span>launches joined to satellite & cost catalog</span>
-          <small>
-            <span>{filters.years[0]} — {filters.years[1]} · 3 Datasets Linked</span>
-            <span className="text-[#65d9ff] font-mono hover:underline flex items-center">
-              Schema <ChevronRight size={12} />
-            </span>
-          </small>
-        </div>
-      </header>
+      {/* Hero Header with Cinematic Space & Earth Background */}
+      <div className="hero-backdrop-wrapper">
+        <header>
+          <div>
+            <p className="eyebrow">A VISUAL ANALYSIS OF GLOBAL SPACE MISSIONS</p>
+            <h1>
+              Explore the arcs of<br />
+              <em>human ambition.</em>
+            </h1>
+            <p className="lede">
+              Web-based interactive data visualization and analysis platform inspired by Tableau.
+            </p>
+          </div>
+          <div className="dataset cursor-pointer" onClick={() => setIsDataHealthOpen(true)}>
+            <Database />
+            <b>{rows.length.toLocaleString()}</b>
+            <span>launches joined to satellite & cost catalog</span>
+            <small>
+              <span>{filters.years[0]} — {filters.years[1]} · 3 Datasets Linked</span>
+              <span className="text-[#65d9ff] font-mono hover:underline flex items-center">
+                Schema <ChevronRight size={12} />
+              </span>
+            </small>
+          </div>
+        </header>
+      </div>
 
       {/* Sticky Global Filters Bar */}
       <div className="filters-wrapper">
@@ -839,6 +848,7 @@ export default function App() {
           title={`SHOW ME ANALYSIS STAGE · ${parameterConfig.activeVisualization.toUpperCase()} VIEW`}
           wide
           badge={`Encoding: ${parameterConfig.activeVisualization} | Metric: ${activeMetric}`}
+          bgImage="/images/hero_space_earth.jpg"
         >
           <p className="caption">
             Interactive analysis canvas reflecting your Tableau Show Me chart selection, marks encoding, and active metric.
@@ -871,6 +881,7 @@ export default function App() {
           title="MISSION VELOCITY · TEMPORAL EVOLUTION"
           wide
           badge={hierarchyState.timeLevel === 'decade' ? 'Decade Rollup' : hierarchyState.timeLevel === 'month' ? 'Monthly Seasonality' : 'Annual Trend'}
+          bgImage="/images/launch_night_gantry.jpg"
           tools={
             <div className="flex items-center gap-1.5 flex-wrap">
               {/* Reference line selector */}
@@ -1114,6 +1125,7 @@ export default function App() {
         {/* Top Space Organizations */}
         <Panel
           title="TOP SPACE ORGANIZATIONS"
+          bgImage="/images/launch_day_shuttle.jpg"
           tools={
             <div className="tools">
               <span>Top</span>
@@ -1158,7 +1170,11 @@ export default function App() {
         </Panel>
 
         {/* Outcomes Over Time (Stacked Area) */}
-        <Panel title="OUTCOMES OVER TIME · STACKED VOLUME" wide>
+        <Panel
+          title="OUTCOMES OVER TIME · STACKED VOLUME"
+          wide
+          bgImage="/images/trajectory_star_trail.jpg"
+        >
           <p className="caption">Cumulative outcome volume stacked by year to illustrate reliability maturation.</p>
           <Chart
             height={320}
@@ -1348,6 +1364,7 @@ export default function App() {
         <Panel
           title="DISTRIBUTION HISTOGRAM"
           badge={histogramMode === 'payloads' ? 'Payloads Frequency' : 'Mission Cost ($M)'}
+          bgImage="/images/satellite_orbit.jpg"
           tools={
             <div className="flex items-center gap-1.5 flex-wrap">
               <div className="flex items-center gap-1 bg-[rgba(14,26,53,0.6)] p-0.5 rounded-md border border-[rgba(181,210,255,0.15)] text-[10px] font-mono">
