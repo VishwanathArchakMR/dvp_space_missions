@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, MapPin, Globe } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, MapPin, Globe, Layers, Eye, Compass } from 'lucide-react';
 import { Mission } from '../types/mission';
 import { isSuccess } from '../utils/data';
 
@@ -42,8 +42,30 @@ const SPACEPORTS: { name: string; country: string; lon: number; lat: number; sit
   { name: 'Barents Sea Submarine', country: 'Barents Sea', lon: 35.0, lat: 69.5, siteAlias: ['barents', 'submarine'] }
 ];
 
+// Country centroid coordinates for country-based map heat pins
+const COUNTRY_COORDINATES: Record<string, { lon: number; lat: number }> = {
+  'USA': { lon: -98.58, lat: 39.83 },
+  'United States': { lon: -98.58, lat: 39.83 },
+  'Russia': { lon: 95.0, lat: 60.0 },
+  'Kazakhstan': { lon: 67.0, lat: 48.0 },
+  'China': { lon: 104.2, lat: 35.86 },
+  'France': { lon: 2.21, lat: 46.23 },
+  'French Guiana': { lon: -53.13, lat: 3.93 },
+  'Japan': { lon: 138.25, lat: 36.2 },
+  'India': { lon: 78.96, lat: 20.59 },
+  'New Zealand': { lon: 174.89, lat: -40.9 },
+  'Israel': { lon: 34.85, lat: 31.05 },
+  'Iran': { lon: 53.69, lat: 32.43 },
+  'North Korea': { lon: 127.51, lat: 40.34 },
+  'South Korea': { lon: 127.77, lat: 35.91 },
+  'Brazil': { lon: -51.93, lat: -14.24 },
+  'Kenya': { lon: 37.91, lat: -0.02 },
+  'Australia': { lon: 133.78, lat: -25.27 },
+  'United Kingdom': { lon: -3.44, lat: 55.38 },
+  'UK': { lon: -3.44, lat: 55.38 }
+};
+
 // Simplified geographic continent paths for world outline (Equirectangular 1000x500)
-// Lon: [-180, 180] -> X: [0, 1000]; Lat: [90, -90] -> Y: [0, 500]
 const CONTINENT_PATHS = [
   // North America
   "M 120 70 L 160 55 L 210 50 L 250 80 L 265 120 L 230 150 L 220 180 L 210 210 L 180 250 L 165 290 L 185 300 L 205 270 L 220 220 L 260 210 L 280 180 L 300 190 L 320 160 L 335 120 L 300 100 L 270 90 L 240 60 Z",
@@ -86,8 +108,9 @@ export default function WorldMap({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [hoveredCountry, setHoveredCountry] = useState<{ name: string; count: number; rate: string; x: number; y: number } | null>(null);
   const [hoveredSite, setHoveredSite] = useState<any | null>(null);
-  const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
+  const [mapMode, setMapMode] = useState<'neon' | 'reference' | 'split'>('neon');
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Compute missions by country
@@ -103,6 +126,28 @@ export default function WorldMap({
     return map;
   }, [missions]);
 
+  // Compute country-level markers
+  const countryMarkers = useMemo(() => {
+    const maxVal = Math.max(1, ...Object.values(countryCounts).map(v => v.count));
+    return Object.entries(countryCounts)
+      .map(([countryName, data]) => {
+        const coords = COUNTRY_COORDINATES[countryName];
+        if (!coords) return null;
+        const [x, y] = projectLonLat(coords.lon, coords.lat);
+        const rate = data.count ? ((data.success / data.count) * 100).toFixed(1) : '0';
+        const radius = Math.max(8, Math.min(28, 8 + Math.sqrt(data.count / maxVal) * 20));
+        return {
+          name: countryName,
+          count: data.count,
+          rate,
+          x,
+          y,
+          radius
+        };
+      })
+      .filter((v): v is NonNullable<typeof v> => v !== null);
+  }, [countryCounts]);
+
   // Compute stats for each spaceport
   const siteStats = useMemo(() => {
     return SPACEPORTS.map(port => {
@@ -111,7 +156,6 @@ export default function WorldMap({
         const siteLow = (m.site || '').toLowerCase();
         const locLow = (m.location || '').toLowerCase();
         const countryMatch = port.country.toLowerCase() === (m.country || '').toLowerCase();
-        
         const aliasMatch = port.siteAlias.some(a => siteLow.includes(a) || locLow.includes(a));
         return (countryMatch && aliasMatch) || siteLow.includes(portNameLow);
       });
@@ -154,12 +198,12 @@ export default function WorldMap({
 
   return (
     <div className="world-map-container relative overflow-hidden rounded-xl bg-[#091530]/80 border border-[rgba(181,210,255,0.15)] backdrop-blur-md">
-      {/* Map Header and Controls */}
-      <div className="map-toolbar absolute top-3 left-4 right-4 z-10 flex justify-between items-center pointer-events-none">
-        <div className="flex items-center gap-2 pointer-events-auto">
+      {/* Map Header and Mode Toggles */}
+      <div className="map-toolbar p-3 bg-[#0a1533]/90 border-b border-[rgba(181,210,255,0.12)] flex flex-wrap justify-between items-center gap-2">
+        <div className="flex items-center gap-2">
           <Globe className="text-[#65d9ff]" size={16} />
-          <span className="font-mono text-xs uppercase tracking-wider text-[#cfd8ed]">
-            Global Spaceport Network & Launch Concentration
+          <span className="font-mono text-xs uppercase tracking-wider text-[#cfd8ed] font-semibold">
+            Global Spaceport Network & Country Mission Density
           </span>
           {selectedCountry !== 'All' && (
             <span className="bg-[#65d9ff]/20 text-[#65d9ff] border border-[#65d9ff]/40 text-[10px] px-2 py-0.5 rounded-full font-mono">
@@ -168,130 +212,237 @@ export default function WorldMap({
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 pointer-events-auto bg-[#0d1c3e]/90 p-1 rounded-lg border border-[rgba(181,210,255,0.18)]">
-          <button
-            onClick={() => setZoom(z => Math.min(z + 0.35, 3.5))}
-            className="p-1.5 hover:bg-[#1a2d5a] rounded text-[#9ba9c9] hover:text-white transition"
-            title="Zoom In"
-          >
-            <ZoomIn size={14} />
-          </button>
-          <button
-            onClick={() => setZoom(z => Math.max(z - 0.35, 0.85))}
-            className="p-1.5 hover:bg-[#1a2d5a] rounded text-[#9ba9c9] hover:text-white transition"
-            title="Zoom Out"
-          >
-            <ZoomOut size={14} />
-          </button>
-          <button
-            onClick={resetView}
-            className="p-1.5 hover:bg-[#1a2d5a] rounded text-[#9ba9c9] hover:text-white transition"
-            title="Reset Zoom"
-          >
-            <RotateCcw size={14} />
-          </button>
+        {/* View mode toggle & zoom controls */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-[#0d1c3e] p-0.5 rounded-lg border border-[rgba(181,210,255,0.15)] text-[10px] font-mono">
+            <button
+              onClick={() => setMapMode('neon')}
+              className={`px-2.5 py-1 rounded transition ${mapMode === 'neon' ? 'bg-[#2a4f8f] text-white font-semibold' : 'text-[#9ba9c9] hover:text-white'}`}
+              title="Neon Interactive Spaceport View"
+            >
+              Neon Grid
+            </button>
+            <button
+              onClick={() => setMapMode('reference')}
+              className={`px-2.5 py-1 rounded transition ${mapMode === 'reference' ? 'bg-[#2a4f8f] text-white font-semibold' : 'text-[#9ba9c9] hover:text-white'}`}
+              title="Political World Map Visual Reference Layer"
+            >
+              Political Map Reference
+            </button>
+            <button
+              onClick={() => setMapMode('split')}
+              className={`px-2.5 py-1 rounded transition ${mapMode === 'split' ? 'bg-[#2a4f8f] text-white font-semibold' : 'text-[#9ba9c9] hover:text-white'}`}
+              title="Overlay & Side-by-Side Comparison"
+            >
+              Dual Mode
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1 bg-[#0d1c3e] p-1 rounded-lg border border-[rgba(181,210,255,0.15)]">
+            <button
+              onClick={() => setZoom(z => Math.min(z + 0.35, 3.5))}
+              className="p-1 hover:bg-[#1a2d5a] rounded text-[#9ba9c9] hover:text-white transition"
+              title="Zoom In"
+            >
+              <ZoomIn size={14} />
+            </button>
+            <button
+              onClick={() => setZoom(z => Math.max(z - 0.35, 0.85))}
+              className="p-1 hover:bg-[#1a2d5a] rounded text-[#9ba9c9] hover:text-white transition"
+              title="Zoom Out"
+            >
+              <ZoomOut size={14} />
+            </button>
+            <button
+              onClick={resetView}
+              className="p-1 hover:bg-[#1a2d5a] rounded text-[#9ba9c9] hover:text-white transition"
+              title="Reset Zoom"
+            >
+              <RotateCcw size={14} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* SVG Map Canvas */}
-      <svg
-        ref={svgRef}
-        viewBox="0 0 1000 500"
-        className={`w-full h-[380px] select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      >
-        <defs>
-          {/* Radial gradient for spaceport beacon pulses */}
-          <radialGradient id="beaconGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#65d9ff" stopOpacity="0.9" />
-            <stop offset="50%" stopColor="#9875ff" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="#9875ff" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="activeBeacon" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#5ee5ad" stopOpacity="1" />
-            <stop offset="60%" stopColor="#5ee5ad" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#5ee5ad" stopOpacity="0" />
-          </radialGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
-        <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`} transform-origin="500 250">
-          {/* Grid lines (Equator & Meridians) */}
-          <line x1="0" y1="250" x2="1000" y2="250" stroke="rgba(146,170,220,0.08)" strokeDasharray="3 3" />
-          <line x1="500" y1="0" x2="500" y2="500" stroke="rgba(146,170,220,0.08)" strokeDasharray="3 3" />
-          <circle cx="500" cy="250" r="240" fill="none" stroke="rgba(146,170,220,0.04)" strokeDasharray="4 6" />
-
-          {/* Continent Landmasses */}
-          {CONTINENT_PATHS.map((pathStr, i) => (
-            <path
-              key={i}
-              d={pathStr}
-              fill="#13244d"
-              stroke="#213a73"
-              strokeWidth="1.2"
-              className="transition-colors hover:fill-[#1b326b]"
+      {/* Main Map Presentation Stage */}
+      <div className="relative">
+        {/* If in Reference or Dual Mode: Display the Provided World Map Image */}
+        {(mapMode === 'reference' || mapMode === 'split') && (
+          <div className="relative w-full h-[400px] overflow-hidden bg-[#0c1f3d] flex items-center justify-center">
+            {/* World Map Reference Image */}
+            <img
+              src="/images/world_map_reference.jpg"
+              alt="World Map Political Reference"
+              className="w-full h-full object-cover opacity-85 select-none"
+              style={{
+                filter: 'brightness(0.9) contrast(1.1) saturate(1.15)',
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: 'center center',
+                transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+              }}
             />
-          ))}
 
-          {/* Spaceport Beacons and Markers */}
-          {siteStats.map((port, idx) => {
-            const isCountrySelected = selectedCountry === port.country;
-            const hasLaunches = port.total > 0;
-            const radius = Math.max(4, Math.min(18, 4 + Math.sqrt(port.total / (maxPortCount || 1)) * 14));
-
-            return (
-              <g
-                key={idx}
-                transform={`translate(${port.x}, ${port.y})`}
-                className="cursor-pointer group"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectCountry(port.country);
-                }}
-                onMouseEnter={() => setHoveredSite(port)}
-                onMouseLeave={() => setHoveredSite(null)}
-              >
-                {/* Outer radar pulse ring for active ports */}
-                {hasLaunches && (
-                  <circle
-                    r={radius * 1.8}
-                    fill={isCountrySelected ? 'url(#activeBeacon)' : 'url(#beaconGlow)'}
-                    className="animate-pulse opacity-75"
-                  />
-                )}
-
-                {/* Core Marker Circle */}
-                <circle
-                  r={radius}
-                  fill={isCountrySelected ? '#5ee5ad' : hasLaunches ? '#65d9ff' : '#60708b'}
-                  stroke={isCountrySelected ? '#ffffff' : '#071025'}
-                  strokeWidth="1.5"
-                  filter="url(#glow)"
-                  className="transition-transform group-hover:scale-125"
-                />
-
-                {/* Center dot */}
-                <circle r={2} fill="#ffffff" />
+            {/* Interactive SVG Overlay on top of the reference image */}
+            <svg
+              viewBox="0 0 1000 500"
+              className={`absolute inset-0 w-full h-full select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            >
+              <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`} transform-origin="500 250">
+                {/* Interactive Country Mission Bubbles overlaid on the image */}
+                {countryMarkers.map(c => {
+                  const isSelected = selectedCountry === c.name;
+                  return (
+                    <g
+                      key={c.name}
+                      transform={`translate(${c.x}, ${c.y})`}
+                      className="cursor-pointer group"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectCountry(selectedCountry === c.name ? 'All' : c.name);
+                      }}
+                      onMouseEnter={() => setHoveredCountry(c)}
+                      onMouseLeave={() => setHoveredCountry(null)}
+                    >
+                      {/* Pulsing ring */}
+                      <circle
+                        r={c.radius * 1.5}
+                        fill={isSelected ? '#5ee5ad' : '#65d9ff'}
+                        opacity={0.35}
+                        className="animate-ping"
+                      />
+                      {/* Main country highlight node */}
+                      <circle
+                        r={c.radius}
+                        fill={isSelected ? '#5ee5ad' : '#143875'}
+                        stroke={isSelected ? '#ffffff' : '#65d9ff'}
+                        strokeWidth="2.5"
+                        fillOpacity={0.8}
+                        className="transition-transform group-hover:scale-125"
+                      />
+                      {/* Mission count label */}
+                      <text
+                        textAnchor="middle"
+                        dy=".3em"
+                        fill="#ffffff"
+                        fontSize={Math.max(8, Math.min(12, c.radius * 0.75))}
+                        fontWeight="bold"
+                        className="pointer-events-none font-mono"
+                      >
+                        {c.count}
+                      </text>
+                    </g>
+                  );
+                })}
               </g>
-            );
-          })}
-        </g>
-      </svg>
+            </svg>
 
-      {/* Floating Hover Tooltip */}
+            {/* Reference Map Attribution & Info Badge */}
+            <div className="absolute top-3 left-3 bg-[#0a1533]/90 border border-[rgba(181,210,255,0.2)] rounded-lg px-2.5 py-1 text-[10px] font-mono text-[#65d9ff] backdrop-blur-md">
+              <span>Map Reference Layer: Highlighting Active Spacefaring Nations</span>
+            </div>
+          </div>
+        )}
+
+        {/* If in Neon or Dual Mode: Display the High-Tech SVG Spaceport Network */}
+        {(mapMode === 'neon' || mapMode === 'split') && (
+          <div className="relative">
+            <svg
+              ref={svgRef}
+              viewBox="0 0 1000 500"
+              className={`w-full ${mapMode === 'split' ? 'h-[320px] border-t border-[rgba(181,210,255,0.15)]' : 'h-[400px]'} select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            >
+              <defs>
+                <radialGradient id="beaconGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#65d9ff" stopOpacity="0.9" />
+                  <stop offset="50%" stopColor="#9875ff" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#9875ff" stopOpacity="0" />
+                </radialGradient>
+                <radialGradient id="activeBeacon" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#5ee5ad" stopOpacity="1" />
+                  <stop offset="60%" stopColor="#5ee5ad" stopOpacity="0.5" />
+                  <stop offset="100%" stopColor="#5ee5ad" stopOpacity="0" />
+                </radialGradient>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`} transform-origin="500 250">
+                {/* Grid lines (Equator & Meridians) */}
+                <line x1="0" y1="250" x2="1000" y2="250" stroke="rgba(146,170,220,0.08)" strokeDasharray="3 3" />
+                <line x1="500" y1="0" x2="500" y2="500" stroke="rgba(146,170,220,0.08)" strokeDasharray="3 3" />
+                <circle cx="500" cy="250" r="240" fill="none" stroke="rgba(146,170,220,0.04)" strokeDasharray="4 6" />
+
+                {/* Continent Landmasses */}
+                {CONTINENT_PATHS.map((pathStr, i) => (
+                  <path
+                    key={i}
+                    d={pathStr}
+                    fill="#13244d"
+                    stroke="#213a73"
+                    strokeWidth="1.2"
+                    className="transition-colors hover:fill-[#1b326b]"
+                  />
+                ))}
+
+                {/* Spaceport Beacons and Markers */}
+                {siteStats.map((port, idx) => {
+                  const isCountrySelected = selectedCountry === port.country;
+                  const hasLaunches = port.total > 0;
+                  const radius = Math.max(4, Math.min(18, 4 + Math.sqrt(port.total / (maxPortCount || 1)) * 14));
+
+                  return (
+                    <g
+                      key={idx}
+                      transform={`translate(${port.x}, ${port.y})`}
+                      className="cursor-pointer group"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectCountry(port.country);
+                      }}
+                      onMouseEnter={() => setHoveredSite(port)}
+                      onMouseLeave={() => setHoveredSite(null)}
+                    >
+                      {hasLaunches && (
+                        <circle
+                          r={radius * 1.8}
+                          fill={isCountrySelected ? 'url(#activeBeacon)' : 'url(#beaconGlow)'}
+                          className="animate-pulse opacity-75"
+                        />
+                      )}
+                      <circle
+                        r={radius}
+                        fill={isCountrySelected ? '#5ee5ad' : hasLaunches ? '#65d9ff' : '#60708b'}
+                        stroke={isCountrySelected ? '#ffffff' : '#071025'}
+                        strokeWidth="1.5"
+                        filter="url(#glow)"
+                        className="transition-transform group-hover:scale-125"
+                      />
+                      <circle r={2} fill="#ffffff" />
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
+          </div>
+        )}
+      </div>
+
+      {/* Floating Hover Tooltip for Spaceport Beacons */}
       {hoveredSite && (
-        <div
-          className="map-tooltip absolute bottom-4 left-4 z-20 pointer-events-none bg-[#0c1328]/95 border border-[#65d9ff]/50 rounded-xl p-3 shadow-2xl backdrop-blur-md min-w-[210px] text-xs"
-        >
+        <div className="map-tooltip absolute bottom-14 left-4 z-20 pointer-events-none bg-[#0c1328]/95 border border-[#65d9ff]/50 rounded-xl p-3 shadow-2xl backdrop-blur-md min-w-[210px] text-xs">
           <div className="flex items-center gap-1.5 text-[#65d9ff] font-semibold mb-1">
             <MapPin size={13} />
             <span>{hoveredSite.name}</span>
@@ -315,9 +466,35 @@ export default function WorldMap({
         </div>
       )}
 
-      {/* Quick Launch Country Pills (Interactive Legend) */}
+      {/* Floating Hover Tooltip for Country Heat Nodes */}
+      {hoveredCountry && (
+        <div className="map-tooltip absolute bottom-14 right-4 z-20 pointer-events-none bg-[#0c1328]/95 border border-[#5ee5ad]/60 rounded-xl p-3 shadow-2xl backdrop-blur-md min-w-[200px] text-xs">
+          <div className="flex items-center gap-1.5 text-[#5ee5ad] font-semibold mb-1">
+            <Globe size={13} />
+            <span>{hoveredCountry.name}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[rgba(181,210,255,0.12)]">
+            <div>
+              <span className="text-[#9ba9c9] block text-[10px]">Total Missions</span>
+              <strong className="text-white text-sm">{hoveredCountry.count.toLocaleString()}</strong>
+            </div>
+            <div>
+              <span className="text-[#9ba9c9] block text-[10px]">Success Rate</span>
+              <strong className="text-[#5ee5ad] text-sm">{hoveredCountry.rate}%</strong>
+            </div>
+          </div>
+          <div className="mt-2 text-[9px] text-[#5ee5ad] tracking-wide uppercase font-mono">
+            Click country node to filter
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Country Selection Pills Bar */}
       <div className="map-legend px-4 py-2.5 bg-[#071025]/90 border-t border-[rgba(181,210,255,0.12)] flex flex-wrap items-center gap-2">
-        <span className="text-[10px] font-mono text-[#9ba9c9] uppercase tracking-wider">Top Nations:</span>
+        <span className="text-[10px] font-mono text-[#9ba9c9] uppercase tracking-wider flex items-center gap-1">
+          <Compass size={12} className="text-[#65d9ff]" />
+          Spacefaring Nations:
+        </span>
         {Object.entries(countryCounts)
           .sort((a, b) => b[1].count - a[1].count)
           .slice(0, 8)
@@ -339,4 +516,3 @@ export default function WorldMap({
     </div>
   );
 }
-

@@ -379,3 +379,166 @@ export function computeHistogramBins(
     };
   });
 }
+
+
+export function getDecadeForYear(year: number | null): string {
+  if (!year) return 'Unknown Decade';
+  const decadeStart = Math.floor(year / 10) * 10;
+  return `${decadeStart}s`;
+}
+
+// In-Memory SQL-Style Join Execution for Multi-Dataset Integration
+export function executeTableJoin(
+  dataset1Type: 'launches' | 'satellites' | 'space_missions',
+  dataset2Type: 'launches' | 'satellites' | 'space_missions',
+  ds1Data: any[],
+  ds2Data: any[],
+  matchColumn: string,
+  joinType: 'inner' | 'left' | 'right' | 'full'
+): {
+  joinedRows: any[];
+  dataset1Count: number;
+  dataset2Count: number;
+  matchedCount: number;
+  resultingCount: number;
+  sampleRows: Record<string, string>[];
+} {
+  const ds1 = ds1Data || [];
+  const ds2 = ds2Data || [];
+
+  // Helper to extract normalized match key from row
+  const getKey = (row: any, col: string): string => {
+    if (!row) return '';
+    const val = row[col] || row[col.toLowerCase()] || '';
+    return String(val).trim().toLowerCase();
+  };
+
+  // Build lookup index from dataset2
+  const ds2Map = new Map<string, any[]>();
+  ds2.forEach(r => {
+    const k = getKey(r, matchColumn);
+    if (k) {
+      if (!ds2Map.has(k)) ds2Map.set(k, []);
+      ds2Map.get(k)!.push(r);
+    }
+  });
+
+  const joined: any[] = [];
+  const matchedKeys = new Set<string>();
+  const ds2UsedIndices = new Set<number>();
+
+  // Process dataset 1
+  ds1.forEach(r1 => {
+    const k = getKey(r1, matchColumn);
+    const matches = k ? ds2Map.get(k) : undefined;
+
+    if (matches && matches.length > 0) {
+      matchedKeys.add(k);
+      matches.forEach(r2 => {
+        joined.push({ ...r1, ...r2, _joinMatch: true });
+      });
+    } else {
+      // Unmatched row from Dataset 1
+      if (joinType === 'left' || joinType === 'full') {
+        joined.push({ ...r1, _joinMatch: false });
+      }
+    }
+  });
+
+  // Track used indices for Right / Full Outer Joins
+  if (joinType === 'right' || joinType === 'full') {
+    const ds1Keys = new Set(ds1.map(r1 => getKey(r1, matchColumn)).filter(Boolean));
+    ds2.forEach(r2 => {
+      const k = getKey(r2, matchColumn);
+      if (!ds1Keys.has(k)) {
+        joined.push({ ...r2, _joinMatch: false });
+      }
+    });
+  }
+
+  // Filter for Inner Join
+  const finalRows = joinType === 'inner'
+    ? joined.filter(r => r._joinMatch)
+    : joined;
+
+  const sampleRows = finalRows.slice(0, 5).map(r => {
+    const clean: Record<string, string> = {};
+    Object.keys(r).slice(0, 6).forEach(k => {
+      if (k !== '_joinMatch' && k !== 'raw') clean[k] = String(r[k] ?? '');
+    });
+    return clean;
+  });
+
+  return {
+    joinedRows: finalRows,
+    dataset1Count: ds1.length,
+    dataset2Count: ds2.length,
+    matchedCount: matchedKeys.size,
+    resultingCount: finalRows.length,
+    sampleRows
+  };
+}
+
+// 2D K-Means Clustering Algorithm for Analytics (Cost vs Payloads)
+export function computeKMeansClusters(
+  points: { id: string; x: number; y: number; label: string; company: string }[],
+  k: number = 3,
+  iterations: number = 10
+): { clusterIndex: number; point: { id: string; x: number; y: number; label: string; company: string } }[] {
+  if (points.length < k || k <= 1) {
+    return points.map(p => ({ clusterIndex: 0, point: p }));
+  }
+
+  // Find min/max for normalization
+  const minX = Math.min(...points.map(p => p.x));
+  const maxX = Math.max(...points.map(p => p.x)) || 1;
+  const minY = Math.min(...points.map(p => p.y));
+  const maxY = Math.max(...points.map(p => p.y)) || 1;
+
+  const norm = (p: { x: number; y: number }) => ({
+    nx: (p.x - minX) / (maxX - minX || 1),
+    ny: (p.y - minY) / (maxY - minY || 1)
+  });
+
+  // Initialize centroids
+  const centroids: { nx: number; ny: number }[] = [];
+  const step = Math.floor(points.length / k);
+  for (let i = 0; i < k; i++) {
+    const pt = norm(points[Math.min(i * step, points.length - 1)]);
+    centroids.push({ nx: pt.nx, ny: pt.ny });
+  }
+
+  let assignments = new Array(points.length).fill(0);
+
+  for (let iter = 0; iter < iterations; iter++) {
+    // Assign points to nearest centroid
+    assignments = points.map(p => {
+      const np = norm(p);
+      let closestIdx = 0;
+      let minDistance = Infinity;
+      centroids.forEach((c, cIdx) => {
+        const dist = Math.hypot(np.nx - c.nx, np.ny - c.ny);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestIdx = cIdx;
+        }
+      });
+      return closestIdx;
+    });
+
+    // Update centroids
+    for (let cIdx = 0; cIdx < k; cIdx++) {
+      const clusterPoints = points.filter((_, idx) => assignments[idx] === cIdx);
+      if (clusterPoints.length > 0) {
+        const avgX = clusterPoints.reduce((s, p) => s + norm(p).nx, 0) / clusterPoints.length;
+        const avgY = clusterPoints.reduce((s, p) => s + norm(p).ny, 0) / clusterPoints.length;
+        centroids[cIdx] = { nx: avgX, ny: avgY };
+      }
+    }
+  }
+
+  return points.map((p, idx) => ({
+    clusterIndex: assignments[idx],
+    point: p
+  }));
+}

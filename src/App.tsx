@@ -2,18 +2,25 @@ import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import {
   Moon, Sun, Upload, RotateCcw, Download, Search, Database,
   MapPin, Building2, Target, Globe, ShieldCheck, TrendingUp,
-  BarChart2, Activity, Info, X, ChevronRight, Layers, Sliders, Box
+  BarChart2, Activity, Info, X, ChevronRight, Layers, Sliders, Box,
+  Sparkles, Compass, Gauge
 } from 'lucide-react';
+import Papa from 'papaparse';
 import Chart from './components/Chart';
 import Intro from './components/Intro';
 import WorldMap from './components/WorldMap';
 import TableauShelf from './components/TableauShelf';
 import DataHealthModal from './components/DataHealthModal';
-import { Filters, Mission } from './types/mission';
+import DataAnalysisToolsPanel from './components/DataAnalysisToolsPanel';
+import {
+  Filters, Mission, MarksConfig, GroupingConfig, ParameterConfig,
+  HierarchyState, AnalyticsConfig, ActionConfig
+} from './types/mission';
 import {
   group, isFailure, isSuccess, joinLaunchesAndSatellites, parseCsv,
   validateDataset, computeBoxPlotStats, computeTrendLine, computeForecast,
-  computeHistogramBins, MONTH_NAMES, getRegionForCountry
+  computeHistogramBins, MONTH_NAMES, getRegionForCountry,
+  getDecadeForYear, computeKMeansClusters
 } from './utils/data';
 
 const palette = ['#65d9ff', '#9875ff', '#ff8bbd', '#5ee5ad', '#ffbf69', '#6d8eff', '#df7cff'];
@@ -51,6 +58,13 @@ function Panel({
 
 export default function App() {
   const [rows, setRows] = useState<Mission[]>([]);
+  const [defaultRows, setDefaultRows] = useState<Mission[]>([]);
+  const [rawDatasets, setRawDatasets] = useState<{ launches: any[]; satellites: any[]; spaceMissions: any[] }>({
+    launches: [],
+    satellites: [],
+    spaceMissions: []
+  });
+
   const [theme, setTheme] = useState<'dark' | 'light'>(() =>
     typeof window !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   );
@@ -59,7 +73,7 @@ export default function App() {
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState<'year' | 'company' | 'outcome' | 'cost'>('year');
 
-  // Tableau-style Analytical States
+  // Tableau Workbench States
   const [countrySort, setCountrySort] = useState<'desc' | 'asc' | 'alpha'>('desc');
   const [countryTopN, setCountryTopN] = useState<5 | 10 | 'all'>(10);
   const [topN, setTopN] = useState<5 | 10 | 20>(10);
@@ -67,23 +81,71 @@ export default function App() {
   const [histogramMode, setHistogramMode] = useState<'payloads' | 'cost'>('payloads');
   const [histogramBinsCount, setHistogramBinsCount] = useState<6 | 8 | 12>(8);
   const [boxPlotCategory, setBoxPlotCategory] = useState<'country' | 'company'>('country');
-  const [showTrendLine, setShowTrendLine] = useState(true);
-  const [showForecast, setShowForecast] = useState(false);
-  const [referenceLineMode, setReferenceLineMode] = useState<'none' | 'average' | 'median'>('average');
-  const [timeHierarchy, setTimeHierarchy] = useState<'annual' | 'monthly'>('annual');
   const [isDataHealthOpen, setIsDataHealthOpen] = useState(false);
+  const [activeMetric, setActiveMetric] = useState<'missions' | 'cost' | 'successRate'>('missions');
 
-  // Ingestion: join launches, satellites, and space_missions (for cost enrichment)
+  // Tableau Marks Card Configuration
+  const [marksConfig, setMarksConfig] = useState<MarksConfig>({
+    colorEncoding: 'default',
+    sizeEncoding: 'default',
+    showLabels: true,
+    tooltipDetail: 'standard'
+  });
+
+  // Tableau Grouping Configuration
+  const [groupingConfig, setGroupingConfig] = useState<GroupingConfig>({
+    groupByContinent: false,
+    groupByDecade: false,
+    binaryOutcome: false
+  });
+
+  // Tableau Parameter Configuration
+  const [parameterConfig, setParameterConfig] = useState<ParameterConfig>({
+    targetMetric: 'missions',
+    timeHorizon: [1990, 2024],
+    activeVisualization: 'bar'
+  });
+
+  // Tableau Hierarchy Drill-Down State
+  const [hierarchyState, setHierarchyState] = useState<HierarchyState>({
+    timeLevel: 'year',
+    geoLevel: 'country'
+  });
+
+  // Tableau Analytics Pane Configuration
+  const [analyticsConfig, setAnalyticsConfig] = useState<AnalyticsConfig>({
+    refLineMode: 'average',
+    customRefValue: 50,
+    enableTrendLine: true,
+    enableForecast: false,
+    enableClustering: false,
+    clusterCount: 3
+  });
+
+  // Tableau Dashboard Actions Configuration
+  const [actionConfig, setActionConfig] = useState<ActionConfig>({
+    crossFilter: true,
+    crossHighlight: true
+  });
+
+  // Load and cache raw datasets on startup for join engine
   useEffect(() => {
     Promise.all([
       fetch('/data/launches.csv').then(r => r.text()),
       fetch('/data/satellites.csv').then(r => r.text()),
       fetch('/data/space_missions.csv').then(r => r.text()).catch(() => '')
     ])
-      .then(([launches, satellites, spaceMissions]) => {
-        setRows(joinLaunchesAndSatellites(launches, satellites, spaceMissions));
+      .then(([launchesText, satellitesText, spaceMissionsText]) => {
+        const rawL = Papa.parse(launchesText, { header: true, skipEmptyLines: true }).data;
+        const rawS = Papa.parse(satellitesText, { header: true, skipEmptyLines: true }).data;
+        const rawM = spaceMissionsText ? Papa.parse(spaceMissionsText, { header: true, skipEmptyLines: true }).data : [];
+        setRawDatasets({ launches: rawL, satellites: rawS, spaceMissions: rawM });
+
+        const joined = joinLaunchesAndSatellites(launchesText, satellitesText, spaceMissionsText);
+        setRows(joined);
+        setDefaultRows(joined);
       })
-      .catch(() => { });
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -116,9 +178,14 @@ export default function App() {
   }, [range[0], range[1]]);
 
   const choices = (fn: (r: Mission) => string) => ['All', ...group(rows, fn).map(x => x[0])];
-  const upd = (k: keyof Filters, v: any) => setFilters(f => ({ ...f, [k]: v }));
 
-  // Main filtered dataset
+  // Helper for cross-filtering (guarded by actionConfig.crossFilter)
+  const upd = (k: keyof Filters, v: any) => {
+    if (!actionConfig.crossFilter && k !== 'years') return;
+    setFilters(f => ({ ...f, [k]: v }));
+  };
+
+  // Main filtered dataset (with grouping transformations applied)
   const filtered = useMemo(() => {
     return rows.filter(r => {
       const yearOk = !r.year || (r.year >= filters.years[0] && r.year <= filters.years[1]);
@@ -134,16 +201,43 @@ export default function App() {
   }, [rows, filters]);
 
   // Aggregations
-  const outcomes = useMemo(() => group(filtered, r => r.outcome), [filtered]);
+  const outcomes = useMemo(() => {
+    if (groupingConfig.binaryOutcome) {
+      return group(filtered, r => isSuccess(r.outcome) ? 'Success' : 'Failure / Other');
+    }
+    return group(filtered, r => r.outcome);
+  }, [filtered, groupingConfig.binaryOutcome]);
+
   const orgs = useMemo(() => group(filtered, r => r.company), [filtered]);
-  const locations = useMemo(() => group(filtered, r => r.country), [filtered]);
-  const regions = useMemo(() => group(filtered, r => r.region), [filtered]);
+
+  const locations = useMemo(() => {
+    if (groupingConfig.groupByContinent || hierarchyState.geoLevel === 'region') {
+      return group(filtered, r => r.region);
+    }
+    if (hierarchyState.geoLevel === 'site') {
+      return group(filtered, r => r.site);
+    }
+    return group(filtered, r => r.country);
+  }, [filtered, groupingConfig.groupByContinent, hierarchyState.geoLevel]);
 
   const success = useMemo(() => filtered.filter(r => isSuccess(r.outcome)).length, [filtered]);
   const fail = useMemo(() => filtered.filter(r => isFailure(r.outcome)).length, [filtered]);
 
-  // Time series: annual
+  // Time series: annual or decade
   const annual = useMemo(() => {
+    if (groupingConfig.groupByDecade || hierarchyState.timeLevel === 'decade') {
+      const decadeMap: Record<string, { total: number; succ: number }> = {};
+      filtered.forEach(r => {
+        const d = getDecadeForYear(r.year);
+        if (!decadeMap[d]) decadeMap[d] = { total: 0, succ: 0 };
+        decadeMap[d].total++;
+        if (isSuccess(r.outcome)) decadeMap[d].succ++;
+      });
+      return Object.entries(decadeMap)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([dec, vals]) => [dec, vals.total, vals.succ] as any);
+    }
+
     const start = filters.years[0];
     const end = filters.years[1];
     const yearsList = Array.from({ length: Math.max(1, end - start + 1) }, (_, i) => start + i);
@@ -152,9 +246,9 @@ export default function App() {
       const yearSuccess = yearMissions.filter(r => isSuccess(r.outcome)).length;
       return [y, yearMissions.length, yearSuccess] as [number, number, number];
     });
-  }, [filtered, filters.years]);
+  }, [filtered, filters.years, groupingConfig.groupByDecade, hierarchyState.timeLevel]);
 
-  // Time series: monthly seasonality
+  // Monthly seasonality
   const monthlySeasonality = useMemo(() => {
     return MONTH_NAMES.map(m => {
       const monthMissions = filtered.filter(r => r.month === m);
@@ -165,10 +259,12 @@ export default function App() {
 
   // Time Series Forecast (5-Year Projection)
   const forecastData = useMemo(() => {
-    if (!showForecast) return [];
-    const annualPoints = annual.map(([y, total]) => [y, total] as [number, number]);
+    if (!analyticsConfig.enableForecast) return [];
+    const annualPoints = annual
+      .filter(x => typeof x[0] === 'number')
+      .map(([y, total]) => [y, total] as [number, number]);
     return computeForecast(annualPoints, 5);
-  }, [annual, showForecast]);
+  }, [annual, analyticsConfig.enableForecast]);
 
   // Histograms
   const payloadBins = useMemo(() => {
@@ -194,23 +290,37 @@ export default function App() {
     return computeBoxPlotStats(groupsData);
   }, [filtered, boxPlotCategory, locations, orgs]);
 
-  // Scatter Plot Data: Mission Cost vs Payloads / Year
+  // Scatter Plot Data with optional K-Means Clustering
   const scatterData = useMemo(() => {
     const withCost = filtered.filter(r => r.cost !== null && r.cost > 0);
-    const points: { name: string; cost: number; payloads: number; year: number; company: string; outcome: string }[] = withCost.map(r => ({
+    const points = withCost.map((r, idx) => ({
+      id: String(idx),
       name: r.detail || r.rocket,
       cost: r.cost!,
       payloads: r.payloadCount || 1,
       year: r.year || 2000,
       company: r.company,
-      outcome: r.outcome
+      outcome: r.outcome,
+      region: r.region
     }));
 
     const xyPoints: [number, number][] = points.map(p => [p.payloads, p.cost]);
     const trendLine = computeTrendLine(xyPoints);
 
-    return { points, trendLine };
-  }, [filtered]);
+    let clusteredPoints: any[] = [];
+    if (analyticsConfig.enableClustering) {
+      const clusterInput = points.map(p => ({
+        id: p.id,
+        x: p.payloads,
+        y: p.cost,
+        label: p.name,
+        company: p.company
+      }));
+      clusteredPoints = computeKMeansClusters(clusterInput, analyticsConfig.clusterCount);
+    }
+
+    return { points, trendLine, clusteredPoints };
+  }, [filtered, analyticsConfig.enableClustering, analyticsConfig.clusterCount]);
 
   // Data Validation Report
   const dataReport = useMemo(() => validateDataset(rows), [rows]);
@@ -239,7 +349,6 @@ export default function App() {
     return list;
   }, [filters]);
 
-  // Reset all filters
   const resetAllFilters = () => {
     setFilters({
       years: range,
@@ -273,29 +382,29 @@ export default function App() {
       grid: { left: 45, right: 25, top: 28, bottom: 40, containLabel: true },
       xAxis: x
         ? {
-          type: 'category',
-          data: x,
-          axisLabel: { color: textColor, fontSize: 11 },
-          axisLine: { lineStyle: { color: splitLineColor } }
-        }
+            type: 'category',
+            data: x,
+            axisLabel: { color: textColor, fontSize: 11 },
+            axisLine: { lineStyle: { color: splitLineColor } }
+          }
         : {
-          type: 'value',
-          axisLabel: { color: textColor, fontSize: 11 },
-          splitLine: { lineStyle: { color: splitLineColor } }
-        },
+            type: 'value',
+            axisLabel: { color: textColor, fontSize: 11 },
+            splitLine: { lineStyle: { color: splitLineColor } }
+          },
       yAxis: x
         ? {
-          type: 'value',
-          name: yAxisLabel,
-          nameTextStyle: { color: textColor, fontSize: 10 },
-          axisLabel: { color: textColor, fontSize: 11 },
-          splitLine: { lineStyle: { color: splitLineColor } }
-        }
+            type: 'value',
+            name: yAxisLabel,
+            nameTextStyle: { color: textColor, fontSize: 10 },
+            axisLabel: { color: textColor, fontSize: 11 },
+            splitLine: { lineStyle: { color: splitLineColor } }
+          }
         : {
-          type: 'category',
-          axisLabel: { color: textColor, fontSize: 11 },
-          axisLine: { show: false }
-        },
+            type: 'category',
+            axisLabel: { color: textColor, fontSize: 11 },
+            axisLine: { show: false }
+          },
       series,
       ...extra
     };
@@ -374,7 +483,7 @@ export default function App() {
 
   // MarkLine configuration for reference lines
   const referenceMarkLine = useMemo(() => {
-    if (referenceLineMode === 'none') return undefined;
+    if (analyticsConfig.refLineMode === 'none') return undefined;
     const totals = annual.map(x => x[1]);
     if (!totals.length) return undefined;
     const avg = Math.round(totals.reduce((s, x) => s + x, 0) / totals.length);
@@ -384,13 +493,146 @@ export default function App() {
     return {
       silent: false,
       data: [
-        referenceLineMode === 'average'
-          ? { type: 'average', name: `Avg: ${avg}`, lineStyle: { color: '#65d9ff', type: 'dashed' } }
-          : { yAxis: median, name: `Median: ${median}`, lineStyle: { color: '#ffbf69', type: 'dashed' } }
+        analyticsConfig.refLineMode === 'average'
+          ? { type: 'average', name: `Avg: ${avg}`, lineStyle: { color: '#65d9ff', type: 'dashed' as const } }
+          : analyticsConfig.refLineMode === 'median'
+          ? { yAxis: median, name: `Median: ${median}`, lineStyle: { color: '#ffbf69', type: 'dashed' as const } }
+          : { yAxis: analyticsConfig.customRefValue, name: `Custom: ${analyticsConfig.customRefValue}`, lineStyle: { color: '#df7cff', type: 'dashed' as const } }
       ],
       label: { color: '#cfd8ed', fontSize: 10, position: 'insideEndTop' }
     };
-  }, [annual, referenceLineMode]);
+  }, [annual, analyticsConfig.refLineMode, analyticsConfig.customRefValue]);
+
+  // Dynamic Show Me Visualization Render Option
+  const dynamicShowMeOption = useMemo(() => {
+    const vis = parameterConfig.activeVisualization;
+    const labelShow = marksConfig.showLabels;
+
+    if (vis === 'bar') {
+      const topData = locations.slice(0, 10);
+      return chartOption(
+        [
+          {
+            type: 'bar',
+            data: topData.map(([, v]) => v),
+            itemStyle: { color: '#65d9ff', borderRadius: [0, 8, 8, 0] },
+            label: { show: labelShow, position: 'right', color: '#cfd8ed', fontSize: 10 }
+          }
+        ],
+        undefined,
+        undefined,
+        {
+          yAxis: {
+            type: 'category',
+            data: topData.map(x => x[0]),
+            axisLabel: { color: '#9ba9c9', fontSize: 11 }
+          }
+        }
+      );
+    }
+
+    if (vis === 'line') {
+      return chartOption(
+        [
+          {
+            name: 'Missions',
+            type: 'line',
+            smooth: true,
+            data: annual.map(x => x[1]),
+            lineStyle: { color: '#65d9ff', width: 3 },
+            areaStyle: { color: 'rgba(101,217,255,0.15)' }
+          }
+        ],
+        annual.map(x => String(x[0])),
+        'Missions'
+      );
+    }
+
+    if (vis === 'pie') {
+      return {
+        tooltip: { trigger: 'item' },
+        series: [
+          {
+            type: 'pie',
+            radius: ['42%', '72%'],
+            data: outcomes.map(([name, value], i) => ({
+              name,
+              value,
+              itemStyle: { color: palette[i % palette.length] }
+            })),
+            label: { show: labelShow, formatter: '{b}: {d}%', color: '#cfd8ed', fontSize: 10 }
+          }
+        ]
+      };
+    }
+
+    if (vis === 'treemap') {
+      return {
+        tooltip: { formatter: '{b}: {c} missions' },
+        series: [
+          {
+            type: 'treemap',
+            breadcrumb: { show: false },
+            data: orgs.slice(0, 16).map(([name, value], i) => ({
+              name,
+              value,
+              itemStyle: { color: palette[i % palette.length] }
+            }))
+          }
+        ]
+      };
+    }
+
+    if (vis === 'scatter') {
+      if (analyticsConfig.enableClustering && scatterData.clusteredPoints.length > 0) {
+        const clusterColors = ['#65d9ff', '#5ee5ad', '#ffbf69', '#df7cff'];
+        return {
+          tooltip: {
+            trigger: 'item',
+            formatter: (p: any) => `<b>${p.data[3]}</b><br/>Cluster: ${p.data[4]}<br/>Payloads: ${p.data[0]}<br/>Cost: $${p.data[1]}M`
+          },
+          grid: { left: 55, right: 25, top: 25, bottom: 40 },
+          xAxis: { type: 'value', name: 'Payloads' },
+          yAxis: { type: 'value', name: 'Cost ($M)' },
+          series: [
+            {
+              type: 'scatter',
+              symbolSize: 10,
+              data: scatterData.clusteredPoints.map(c => [
+                c.point.x,
+                c.point.y,
+                c.point.company,
+                c.point.label,
+                `Cluster ${c.clusterIndex + 1}`
+              ]),
+              itemStyle: {
+                color: (p: any) => clusterColors[p.data[4].split(' ')[1] - 1] || '#65d9ff'
+              }
+            }
+          ]
+        };
+      }
+      return chartOption(
+        [
+          {
+            type: 'scatter',
+            symbolSize: 8,
+            itemStyle: { color: '#df7cff' },
+            data: scatterData.points.map(p => [p.payloads, p.cost])
+          }
+        ],
+        undefined,
+        'Cost ($M)'
+      );
+    }
+
+    // Default fallback to bar
+    return chartOption(
+      [{ type: 'bar', data: locations.slice(0, 8).map(x => x[1]), itemStyle: { color: '#5ee5ad' } }],
+      locations.slice(0, 8).map(x => x[0]),
+      'Missions'
+    );
+  }, [parameterConfig.activeVisualization, locations, annual, outcomes, orgs, scatterData, analyticsConfig, marksConfig]);
 
   return (
     <main className={theme}>
@@ -402,18 +644,19 @@ export default function App() {
           <span>✦</span>
           <div>
             <b>ORBITAL ATLAS</b>
-            <small>A Visual Analysis of Global Space Missions · Tableau Analytics</small>
+            <small>A Visual Analysis of Global Space Missions · Tableau Analytics Platform</small>
           </div>
         </div>
         <div className="navlinks">
           <a href="#dashboard">Dashboard</a>
+          <a href="#workbench">Analysis Tools</a>
           <a href="#geography">Geographic Map</a>
           <a href="#analytics">Advanced Analytics</a>
           <a href="#explore">Data Explorer</a>
           <button
             onClick={() => setIsDataHealthOpen(true)}
             className="dataset-btn"
-            title="Inspect Data Validation & Relationships"
+            title="Inspect Data Validation & Schema Relationships"
           >
             <ShieldCheck size={14} className="text-[#5ee5ad]" />
             <span className="text-[11px] font-mono">Data Health: {dataReport.completenessRate}%</span>
@@ -444,7 +687,7 @@ export default function App() {
             <em>human ambition.</em>
           </h1>
           <p className="lede">
-            Interactive analytical intelligence across 7+ decades of orbital launches, space agencies, and spaceports.
+            Web-based interactive data visualization and analysis platform inspired by Tableau.
           </p>
         </div>
         <div className="dataset cursor-pointer" onClick={() => setIsDataHealthOpen(true)}>
@@ -460,7 +703,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Sticky Filters & Quick Filter Pills */}
+      {/* Sticky Global Filters Bar */}
       <div className="filters-wrapper">
         <div className="filters">
           <label>
@@ -536,7 +779,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* Active Filter Pills Strip (Tableau Quick Filters) */}
+        {/* Active Filter Pills Strip */}
         {activeFilters.length > 0 && (
           <div className="filter-pills-bar">
             <span className="label">Active Filters:</span>
@@ -558,7 +801,53 @@ export default function App() {
         )}
       </div>
 
-      {/* Tableau Dimensions & Measures Shelf */}
+      {/* MAIN FEATURE: TABLEAU-STYLE ANALYSIS TOOLS PANEL */}
+      <div id="workbench" className="tableau-shelf-wrap">
+        <DataAnalysisToolsPanel
+          allMissions={rows}
+          filteredMissions={filtered}
+          rawDatasets={rawDatasets}
+          filters={filters}
+          onUpdateFilter={upd}
+          onResetFilters={resetAllFilters}
+          onApplyJoin={(joinedRows, summary) => {
+            setRows(joinedRows);
+          }}
+          onResetJoin={() => {
+            setRows(defaultRows);
+          }}
+          marksConfig={marksConfig}
+          onUpdateMarks={cfg => setMarksConfig(c => ({ ...c, ...cfg }))}
+          groupingConfig={groupingConfig}
+          onUpdateGrouping={cfg => setGroupingConfig(c => ({ ...c, ...cfg }))}
+          parameterConfig={parameterConfig}
+          onUpdateParameter={cfg => setParameterConfig(c => ({ ...c, ...cfg }))}
+          hierarchyState={hierarchyState}
+          onUpdateHierarchy={cfg => setHierarchyState(c => ({ ...c, ...cfg }))}
+          analyticsConfig={analyticsConfig}
+          onUpdateAnalytics={cfg => setAnalyticsConfig(c => ({ ...c, ...cfg }))}
+          actionConfig={actionConfig}
+          onUpdateActions={cfg => setActionConfig(c => ({ ...c, ...cfg }))}
+          activeMetric={activeMetric}
+          onSelectMetric={setActiveMetric}
+        />
+      </div>
+
+      {/* DYNAMIC SHOW ME VISUALIZATION STAGE (If Show Me or Chart selector active) */}
+      <div className="tableau-shelf-wrap mb-4">
+        <Panel
+          title={`SHOW ME ANALYSIS STAGE · ${parameterConfig.activeVisualization.toUpperCase()} VIEW`}
+          wide
+          badge={`Encoding: ${parameterConfig.activeVisualization} | Metric: ${activeMetric}`}
+        >
+          <p className="caption">
+            Interactive analysis canvas reflecting your Tableau Show Me chart selection, marks encoding, and active metric.
+          </p>
+          <Chart height={340} option={dynamicShowMeOption} />
+        </Panel>
+      </div>
+
+      {/* Tableau Dimensions & Measures Schema Shelf */}
       <div className="tableau-shelf-wrap">
         <TableauShelf missions={filtered} />
       </div>
@@ -581,7 +870,7 @@ export default function App() {
         <Panel
           title="MISSION VELOCITY · TEMPORAL EVOLUTION"
           wide
-          badge={timeHierarchy === 'annual' ? 'Annual Trend' : 'Monthly Seasonality'}
+          badge={hierarchyState.timeLevel === 'decade' ? 'Decade Rollup' : hierarchyState.timeLevel === 'month' ? 'Monthly Seasonality' : 'Annual Trend'}
           tools={
             <div className="flex items-center gap-1.5 flex-wrap">
               {/* Reference line selector */}
@@ -590,8 +879,8 @@ export default function App() {
                 {(['none', 'average', 'median'] as const).map(mode => (
                   <button
                     key={mode}
-                    onClick={() => setReferenceLineMode(mode)}
-                    className={`tab-btn ${referenceLineMode === mode ? 'active' : ''}`}
+                    onClick={() => setAnalyticsConfig(c => ({ ...c, refLineMode: mode }))}
+                    className={`tab-btn ${analyticsConfig.refLineMode === mode ? 'active' : ''}`}
                   >
                     {mode.charAt(0).toUpperCase() + mode.slice(1)}
                   </button>
@@ -600,29 +889,19 @@ export default function App() {
 
               {/* Forecast Toggle */}
               <button
-                onClick={() => setShowForecast(!showForecast)}
-                className={`tab-btn ${showForecast ? 'active' : ''}`}
+                onClick={() => setAnalyticsConfig(c => ({ ...c, enableForecast: !c.enableForecast }))}
+                className={`tab-btn ${analyticsConfig.enableForecast ? 'active' : ''}`}
                 title="5-Year Exponential Projection"
               >
                 <TrendingUp size={11} className="inline mr-1" />
-                {showForecast ? 'Forecast: ON' : '+ 5Y Forecast'}
-              </button>
-
-              {/* Time Granularity Toggle */}
-              <button
-                onClick={() => setTimeHierarchy(timeHierarchy === 'annual' ? 'monthly' : 'annual')}
-                className="tab-btn"
-              >
-                {timeHierarchy === 'annual' ? 'Drill: Month' : 'Drill: Year'}
+                {analyticsConfig.enableForecast ? 'Forecast: ON' : '+ 5Y Forecast'}
               </button>
             </div>
           }
         >
           <p className="caption">
-            {timeHierarchy === 'annual'
-              ? 'Annual launch trajectories and successful insertions. Reference lines indicate historical central tendencies.'
-              : 'Cumulative launch seasonality grouped by calendar month across all recorded mission years.'}
-            {showForecast && (
+            Launch trajectories and successful insertions. Reference lines indicate historical central tendencies.
+            {analyticsConfig.enableForecast && (
               <span className="text-[#ffbf69] block font-mono text-[10px] mt-1">
                 * Note: Forecast lines and confidence intervals are statistical estimates based on historical damped trend.
               </span>
@@ -632,80 +911,80 @@ export default function App() {
           <Chart
             height={340}
             option={
-              timeHierarchy === 'annual'
+              hierarchyState.timeLevel === 'month'
                 ? chartOption(
-                  [
-                    {
-                      name: 'All Missions',
-                      type: 'line',
-                      smooth: true,
-                      data: annual.map(x => x[1]),
-                      areaStyle: { color: 'rgba(101,217,255,.12)' },
-                      lineStyle: { color: '#65d9ff', width: 3 },
-                      symbolSize: 6,
-                      markLine: referenceMarkLine
-                    },
-                    {
-                      name: 'Successful Launches',
-                      type: 'line',
-                      smooth: true,
-                      data: annual.map(x => x[2]),
-                      lineStyle: { color: '#a98bff', width: 2 }
-                    },
-                    ...(showForecast && forecastData.length
-                      ? [
-                        {
-                          name: '5Y Forecast',
-                          type: 'line',
-                          data: [
-                            ...Array(annual.length - 1).fill(null),
-                            annual[annual.length - 1][1],
-                            ...forecastData.map(f => f.forecast)
-                          ],
-                          lineStyle: { color: '#ffbf69', type: 'dashed', width: 2 },
-                          itemStyle: { color: '#ffbf69' }
-                        },
-                        {
-                          name: 'Confidence Range',
-                          type: 'line',
-                          data: [
-                            ...Array(annual.length - 1).fill(null),
-                            annual[annual.length - 1][1],
-                            ...forecastData.map(f => f.upper)
-                          ],
-                          lineStyle: { opacity: 0 },
-                          areaStyle: { color: 'rgba(255, 191, 105, 0.15)' },
-                          stack: 'confidence-band',
-                          symbol: 'none'
-                        }
-                      ]
-                      : [])
-                  ],
-                  [
-                    ...annual.map(x => String(x[0])),
-                    ...(showForecast ? forecastData.map(f => String(f.year)) : [])
-                  ],
-                  'Launches'
-                )
+                    [
+                      {
+                        name: 'Monthly Missions',
+                        type: 'bar',
+                        data: monthlySeasonality.map(x => x[1]),
+                        itemStyle: { color: '#65d9ff', borderRadius: [6, 6, 0, 0] }
+                      },
+                      {
+                        name: 'Successful',
+                        type: 'line',
+                        smooth: true,
+                        data: monthlySeasonality.map(x => x[2]),
+                        lineStyle: { color: '#5ee5ad', width: 3 }
+                      }
+                    ],
+                    monthlySeasonality.map(x => x[0]),
+                    'Launches'
+                  )
                 : chartOption(
-                  [
-                    {
-                      name: 'Monthly Missions',
-                      type: 'bar',
-                      data: monthlySeasonality.map(x => x[1]),
-                      itemStyle: { color: '#65d9ff', borderRadius: [6, 6, 0, 0] }
-                    },
-                    {
-                      name: 'Successful',
-                      type: 'line',
-                      smooth: true,
-                      data: monthlySeasonality.map(x => x[2]),
-                      lineStyle: { color: '#5ee5ad', width: 3 }
-                    }
-                  ],
-                  monthlySeasonality.map(x => x[0]),
-                  'Launches'
-                )
+                    [
+                      {
+                        name: 'All Missions',
+                        type: 'line',
+                        smooth: true,
+                        data: annual.map(x => x[1]),
+                        areaStyle: { color: 'rgba(101,217,255,.12)' },
+                        lineStyle: { color: '#65d9ff', width: 3 },
+                        symbolSize: 6,
+                        markLine: referenceMarkLine
+                      },
+                      {
+                        name: 'Successful Launches',
+                        type: 'line',
+                        smooth: true,
+                        data: annual.map(x => x[2]),
+                        lineStyle: { color: '#a98bff', width: 2 }
+                      },
+                      ...(analyticsConfig.enableForecast && forecastData.length
+                        ? [
+                            {
+                              name: '5Y Forecast',
+                              type: 'line',
+                              data: [
+                                ...Array(annual.length - 1).fill(null),
+                                annual[annual.length - 1][1],
+                                ...forecastData.map(f => f.forecast)
+                              ],
+                              lineStyle: { color: '#ffbf69', type: 'dashed' as const, width: 2 },
+                              itemStyle: { color: '#ffbf69' }
+                            },
+                            {
+                              name: 'Confidence Range',
+                              type: 'line',
+                              data: [
+                                ...Array(annual.length - 1).fill(null),
+                                annual[annual.length - 1][1],
+                                ...forecastData.map(f => f.upper)
+                              ],
+                              lineStyle: { opacity: 0 },
+                              areaStyle: { color: 'rgba(255, 191, 105, 0.15)' },
+                              stack: 'confidence-band',
+                              symbol: 'none'
+                            }
+                          ]
+                        : [])
+                    ],
+                    [
+                      ...annual.map(x => String(x[0])),
+                      ...(analyticsConfig.enableForecast ? forecastData.map(f => String(f.year)) : [])
+                    ],
+                    'Launches'
+                  )
             }
           />
         </Panel>
@@ -734,7 +1013,7 @@ export default function App() {
                     itemStyle: { color: palette[i % palette.length] }
                   })),
                   label: {
-                    show: true,
+                    show: marksConfig.showLabels,
                     formatter: '{b}: {d}%',
                     color: '#cfd8ed',
                     fontSize: 10
@@ -746,11 +1025,11 @@ export default function App() {
           />
         </Panel>
 
-        {/* D. Interactive World Map Section */}
+        {/* D. Interactive World Map Section (With Provided World Map Image Integration) */}
         <div id="geography" className="wide">
-          <Panel title="GEOGRAPHIC ANALYSIS · GLOBAL LAUNCH NETWORK" wide badge="Interactive World Spaceports">
+          <Panel title="GEOGRAPHIC ANALYSIS · GLOBAL LAUNCH NETWORK" wide badge="World Map Reference & Spaceports">
             <p className="caption">
-              Coordinates of global spaceports with proportional launch density beacons. Click any nation pill or spaceport marker to filter the entire dashboard.
+              Cleanly integrated world map reference layer alongside interactive country mission density highlights and spaceport beacons. Hover to view country names and launch counts, or click to filter.
             </p>
             <WorldMap
               missions={filtered}
@@ -767,32 +1046,27 @@ export default function App() {
           title="COUNTRY LAUNCH ACTIVITY"
           tools={
             <div className="flex items-center gap-1.5 flex-wrap">
-              {/* Sort Order */}
               <div className="flex items-center gap-0.5 bg-[rgba(14,26,53,0.6)] p-0.5 rounded-md border border-[rgba(181,210,255,0.15)] text-[10px]">
                 <button
                   onClick={() => setCountrySort('desc')}
                   className={`tab-btn ${countrySort === 'desc' ? 'active' : ''}`}
-                  title="Highest First"
                 >
                   High
                 </button>
                 <button
                   onClick={() => setCountrySort('asc')}
                   className={`tab-btn ${countrySort === 'asc' ? 'active' : ''}`}
-                  title="Lowest First"
                 >
                   Low
                 </button>
                 <button
                   onClick={() => setCountrySort('alpha')}
                   className={`tab-btn ${countrySort === 'alpha' ? 'active' : ''}`}
-                  title="Alphabetical"
                 >
                   A–Z
                 </button>
               </div>
 
-              {/* Top N */}
               <div className="flex items-center gap-0.5 bg-[rgba(14,26,53,0.6)] p-0.5 rounded-md border border-[rgba(181,210,255,0.15)] text-[10px]">
                 {[5, 10, 'all'].map((n: any) => (
                   <button
@@ -819,7 +1093,7 @@ export default function App() {
                     type: 'bar',
                     data: sortedCountries.map(([, v]) => v),
                     itemStyle: { color: '#5ee5ad', borderRadius: [0, 8, 8, 0] },
-                    label: { show: true, position: 'right', color: '#cfd8ed', fontSize: 10 }
+                    label: { show: marksConfig.showLabels, position: 'right', color: '#cfd8ed', fontSize: 10 }
                   }
                 ],
                 undefined,
@@ -865,7 +1139,7 @@ export default function App() {
                     type: 'bar',
                     data: orgs.slice(0, topN).map(([, v]) => v),
                     itemStyle: { color: '#8b7cff', borderRadius: [0, 8, 8, 0] },
-                    label: { show: true, position: 'right', color: '#cfd8ed', fontSize: 10 }
+                    label: { show: marksConfig.showLabels, position: 'right', color: '#cfd8ed', fontSize: 10 }
                   }
                 ],
                 undefined,
@@ -945,7 +1219,7 @@ export default function App() {
                   type: 'treemap',
                   roam: false,
                   breadcrumb: { show: false },
-                  label: { show: true, formatter: '{b}\n{c}', color: '#fff', fontSize: 11 },
+                  label: { show: marksConfig.showLabels, formatter: '{b}\n{c}', color: '#fff', fontSize: 11 },
                   itemStyle: { gapWidth: 2, borderColor: '#071025', borderWidth: 1 },
                   data: orgs.slice(0, 22).map(([name, value], i) => ({
                     name,
@@ -1010,8 +1284,8 @@ export default function App() {
                   heatmapMode === 'country-year'
                     ? locations.slice(0, 12).map(x => x[0])
                     : heatmapMode === 'org-year'
-                      ? orgs.slice(0, 12).map(x => x[0])
-                      : [...MONTH_NAMES],
+                    ? orgs.slice(0, 12).map(x => x[0])
+                    : [...MONTH_NAMES],
                 axisLabel: { color: '#9ba9c9', fontSize: 10 }
               },
               visualMap: {
@@ -1029,21 +1303,21 @@ export default function App() {
                   data:
                     heatmapMode === 'country-year'
                       ? locations.slice(0, 12).flatMap(([c], yi) =>
-                        annual.map(([y], xi) => [
-                          xi,
-                          yi,
-                          filtered.filter(r => r.country === c && r.year === y).length
-                        ])
-                      )
+                          annual.map(([y], xi) => [
+                            xi,
+                            yi,
+                            filtered.filter(r => r.country === c && r.year === y).length
+                          ])
+                        )
                       : heatmapMode === 'org-year'
-                        ? orgs.slice(0, 12).flatMap(([o], yi) =>
+                      ? orgs.slice(0, 12).flatMap(([o], yi) =>
                           annual.map(([y], xi) => [
                             xi,
                             yi,
                             filtered.filter(r => r.company === o && r.year === y).length
                           ])
                         )
-                        : MONTH_NAMES.flatMap((m, yi) =>
+                      : MONTH_NAMES.flatMap((m, yi) =>
                           annual.map(([y], xi) => [
                             xi,
                             yi,
@@ -1076,7 +1350,6 @@ export default function App() {
           badge={histogramMode === 'payloads' ? 'Payloads Frequency' : 'Mission Cost ($M)'}
           tools={
             <div className="flex items-center gap-1.5 flex-wrap">
-              {/* Metric Toggle */}
               <div className="flex items-center gap-1 bg-[rgba(14,26,53,0.6)] p-0.5 rounded-md border border-[rgba(181,210,255,0.15)] text-[10px] font-mono">
                 <button
                   onClick={() => setHistogramMode('payloads')}
@@ -1092,7 +1365,6 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Bins Count */}
               <div className="flex items-center gap-1 bg-[rgba(14,26,53,0.6)] p-0.5 rounded-md border border-[rgba(181,210,255,0.15)] text-[10px] font-mono">
                 <span className="text-[#9ba9c9] px-1">Bins:</span>
                 {[6, 8, 12].map((b: any) => (
@@ -1124,7 +1396,7 @@ export default function App() {
                     color: histogramMode === 'payloads' ? '#ffbf69' : '#5ee5ad',
                     borderRadius: [6, 6, 0, 0]
                   },
-                  label: { show: true, position: 'top', color: '#cfd8ed', fontSize: 10 }
+                  label: { show: marksConfig.showLabels, position: 'top', color: '#cfd8ed', fontSize: 10 }
                 }
               ],
               (histogramMode === 'payloads' ? payloadBins : costBins).map(b => b.label),
@@ -1207,15 +1479,23 @@ export default function App() {
         <Panel
           title="COST VS PAYLOAD SCALE · SCATTER PLOT"
           wide
-          badge="Regression Analysis"
+          badge={analyticsConfig.enableClustering ? 'Clustering Active' : 'Regression Analysis'}
           tools={
-            <button
-              onClick={() => setShowTrendLine(!showTrendLine)}
-              className={`tab-btn ${showTrendLine ? 'active' : ''}`}
-            >
-              <TrendingUp size={11} className="inline mr-1" />
-              {showTrendLine ? 'Trend Line: ON' : '+ Trend Line'}
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setAnalyticsConfig(c => ({ ...c, enableTrendLine: !c.enableTrendLine }))}
+                className={`tab-btn ${analyticsConfig.enableTrendLine ? 'active' : ''}`}
+              >
+                <TrendingUp size={11} className="inline mr-1" />
+                {analyticsConfig.enableTrendLine ? 'Trend: ON' : '+ Trend Line'}
+              </button>
+              <button
+                onClick={() => setAnalyticsConfig(c => ({ ...c, enableClustering: !c.enableClustering }))}
+                className={`tab-btn ${analyticsConfig.enableClustering ? 'active' : ''}`}
+              >
+                {analyticsConfig.enableClustering ? 'Clusters: ON' : '+ Clustering'}
+              </button>
+            </div>
           }
         >
           <p className="caption">
@@ -1255,16 +1535,16 @@ export default function App() {
                     itemStyle: { color: '#df7cff', opacity: 0.8 },
                     data: scatterData.points.map(p => [p.payloads, p.cost, p.year, p.name, p.company, p.outcome])
                   },
-                  ...(showTrendLine && scatterData.trendLine.length
+                  ...(analyticsConfig.enableTrendLine && scatterData.trendLine.length
                     ? [
-                      {
-                        name: 'Linear Trend Line',
-                        type: 'line' as const,
-                        showSymbol: false,
-                        data: scatterData.trendLine,
-                        lineStyle: { color: '#65d9ff', width: 2, type: 'dashed' as const }
-                      }
-                    ]
+                        {
+                          name: 'Linear Trend Line',
+                          type: 'line' as const,
+                          showSymbol: false,
+                          data: scatterData.trendLine,
+                          lineStyle: { color: '#65d9ff', width: 2, type: 'dashed' as const }
+                        }
+                      ]
                     : [])
                 ]
               }}
@@ -1455,7 +1735,7 @@ export default function App() {
       />
 
       <footer>
-        ORBITAL ATLAS · TABLEAU ANALYTICAL ENGINE · {rows.length.toLocaleString()} LOADED & ENRICHED RECORDS
+        ORBITAL ATLAS · TABLEAU DATA ANALYSIS PLATFORM · {rows.length.toLocaleString()} LOADED & JOINED RECORDS
       </footer>
     </main>
   );
