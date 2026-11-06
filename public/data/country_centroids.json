@@ -1,0 +1,1038 @@
+{
+  "Indonesia": [
+    119.42,
+    -2.55
+  ],
+  "Malaysia": [
+    110.79,
+    4.42
+  ],
+  "Chile": [
+    -73.48,
+    -47.45
+  ],
+  "Bolivia": [
+    -64.51,
+    -17.08
+  ],
+  "Peru": [
+    -74.57,
+    -9.38
+  ],
+  "Argentina": [
+    -65.87,
+    -40.49
+  ],
+  "Dhekelia Sovereign Base Area": [
+    33.78,
+    35
+  ],
+  "Cyprus": [
+    33.58,
+    34.97
+  ],
+  "India": [
+    78.9,
+    20.6
+  ],
+  "China": [
+    104.2,
+    35.8
+  ],
+  "Israel": [
+    35.05,
+    31.83
+  ],
+  "Palestine": [
+    34.88,
+    31.75
+  ],
+  "Lebanon": [
+    35.87,
+    33.86
+  ],
+  "Ethiopia": [
+    38.59,
+    9.09
+  ],
+  "South Sudan": [
+    30.5,
+    7.33
+  ],
+  "Somalia": [
+    46.78,
+    6.31
+  ],
+  "Kenya": [
+    38.47,
+    0.88
+  ],
+  "Malawi": [
+    34.35,
+    -12.9
+  ],
+  "United Republic of Tanzania": [
+    37.16,
+    -6.8
+  ],
+  "Syria": [
+    37.83,
+    35.15
+  ],
+  "Somaliland": [
+    46.11,
+    10.12
+  ],
+  "France": [
+    2.2,
+    46.2
+  ],
+  "Suriname": [
+    -55.99,
+    3.85
+  ],
+  "Guyana": [
+    -59.1,
+    5.25
+  ],
+  "South Korea": [
+    126.87,
+    35.43
+  ],
+  "North Korea": [
+    125.81,
+    39.27
+  ],
+  "Morocco": [
+    -8.32,
+    29.53
+  ],
+  "Western Sahara": [
+    -12.6,
+    24.27
+  ],
+  "Costa Rica": [
+    -84.56,
+    9.11
+  ],
+  "Nicaragua": [
+    -84.16,
+    12.83
+  ],
+  "Republic of the Congo": [
+    14.42,
+    -1.32
+  ],
+  "Democratic Republic of the Congo": [
+    22.39,
+    -4.61
+  ],
+  "Bhutan": [
+    90.51,
+    27.63
+  ],
+  "Ukraine": [
+    31.75,
+    48.25
+  ],
+  "Belarus": [
+    28.26,
+    53.39
+  ],
+  "Namibia": [
+    18.68,
+    -21.81
+  ],
+  "South Africa": [
+    26.51,
+    -31.01
+  ],
+  "Saint Martin": [
+    -63.06,
+    18.06
+  ],
+  "Sint Maarten": [
+    -63.09,
+    18.05
+  ],
+  "Oman": [
+    56.51,
+    21.76
+  ],
+  "Uzbekistan": [
+    66.63,
+    40.99
+  ],
+  "Kazakhstan": [
+    67,
+    48
+  ],
+  "Tajikistan": [
+    70.59,
+    39.07
+  ],
+  "Lithuania": [
+    23.62,
+    55.23
+  ],
+  "Brazil": [
+    -51.9,
+    -14.2
+  ],
+  "Uruguay": [
+    -56.06,
+    -32.62
+  ],
+  "Mongolia": [
+    104.35,
+    47.14
+  ],
+  "Russia": [
+    95,
+    60
+  ],
+  "Czechia": [
+    15.82,
+    49.99
+  ],
+  "Germany": [
+    9.71,
+    53.12
+  ],
+  "Estonia": [
+    23.84,
+    58.56
+  ],
+  "Latvia": [
+    25.54,
+    57.01
+  ],
+  "Norway": [
+    14.85,
+    67.98
+  ],
+  "Sweden": [
+    18.43,
+    61.26
+  ],
+  "Finland": [
+    23.27,
+    62.09
+  ],
+  "Vietnam": [
+    106.71,
+    15.95
+  ],
+  "Cambodia": [
+    104.36,
+    11.84
+  ],
+  "Luxembourg": [
+    6.1,
+    49.82
+  ],
+  "United Arab Emirates": [
+    54.29,
+    24.49
+  ],
+  "Belgium": [
+    4.7,
+    50.42
+  ],
+  "Georgia": [
+    43.29,
+    42.08
+  ],
+  "North Macedonia": [
+    21.51,
+    41.58
+  ],
+  "Albania": [
+    20,
+    41.28
+  ],
+  "Azerbaijan": [
+    47.16,
+    40.32
+  ],
+  "Kosovo": [
+    20.82,
+    42.52
+  ],
+  "Turkey": [
+    32.61,
+    39.22
+  ],
+  "Spain": [
+    -5.98,
+    36.36
+  ],
+  "Laos": [
+    103.78,
+    18.66
+  ],
+  "Kyrgyzstan": [
+    72.83,
+    40.77
+  ],
+  "Armenia": [
+    45.25,
+    40.55
+  ],
+  "Denmark": [
+    10.58,
+    55.75
+  ],
+  "Libya": [
+    17.04,
+    28.62
+  ],
+  "Tunisia": [
+    10.34,
+    34.37
+  ],
+  "Romania": [
+    25.27,
+    45.62
+  ],
+  "Hungary": [
+    19.11,
+    47.46
+  ],
+  "Slovakia": [
+    19.8,
+    48.63
+  ],
+  "Poland": [
+    18.55,
+    51.68
+  ],
+  "Ireland": [
+    -8.89,
+    53.41
+  ],
+  "United Kingdom": [
+    -4.49,
+    56.34
+  ],
+  "Greece": [
+    24.34,
+    37.72
+  ],
+  "Zambia": [
+    28.66,
+    -12.66
+  ],
+  "Sierra Leone": [
+    -12.23,
+    8.42
+  ],
+  "Guinea": [
+    -11,
+    10.25
+  ],
+  "Liberia": [
+    -9.26,
+    6.9
+  ],
+  "Central African Republic": [
+    20.73,
+    6.59
+  ],
+  "Sudan": [
+    30.15,
+    14.67
+  ],
+  "Djibouti": [
+    42.76,
+    11.85
+  ],
+  "Eritrea": [
+    39.56,
+    15.04
+  ],
+  "Austria": [
+    13.58,
+    47.65
+  ],
+  "Iraq": [
+    44.74,
+    33.55
+  ],
+  "Italy": [
+    12.11,
+    41
+  ],
+  "Switzerland": [
+    8.76,
+    46.68
+  ],
+  "Iran": [
+    53.64,
+    30.81
+  ],
+  "Netherlands": [
+    -8,
+    45.57
+  ],
+  "Liechtenstein": [
+    9.52,
+    47.19
+  ],
+  "Ivory Coast": [
+    -5.63,
+    7.58
+  ],
+  "Republic of Serbia": [
+    20.67,
+    44.21
+  ],
+  "Mali": [
+    -5.6,
+    14.47
+  ],
+  "Senegal": [
+    -15.31,
+    13.77
+  ],
+  "Nigeria": [
+    7.53,
+    7.71
+  ],
+  "Benin": [
+    2.39,
+    10.25
+  ],
+  "Angola": [
+    16.36,
+    -10.74
+  ],
+  "Croatia": [
+    15.74,
+    44.12
+  ],
+  "Slovenia": [
+    14.63,
+    46.04
+  ],
+  "Qatar": [
+    51.17,
+    25.25
+  ],
+  "Saudi Arabia": [
+    42.22,
+    24.12
+  ],
+  "Botswana": [
+    24.84,
+    -22.05
+  ],
+  "Zimbabwe": [
+    29.39,
+    -19.01
+  ],
+  "Pakistan": [
+    69.67,
+    29.58
+  ],
+  "Bulgaria": [
+    24.72,
+    42.7
+  ],
+  "Thailand": [
+    99.94,
+    10.85
+  ],
+  "San Marino": [
+    12.45,
+    43.92
+  ],
+  "Haiti": [
+    -73.1,
+    18.88
+  ],
+  "Dominican Republic": [
+    -70.28,
+    18.55
+  ],
+  "Chad": [
+    18.45,
+    12.78
+  ],
+  "Kuwait": [
+    47.98,
+    29.55
+  ],
+  "El Salvador": [
+    -88.26,
+    13.46
+  ],
+  "Guatemala": [
+    -90.4,
+    15.73
+  ],
+  "East Timor": [
+    125.16,
+    -8.83
+  ],
+  "Brunei": [
+    114.94,
+    4.67
+  ],
+  "Monaco": [
+    7.41,
+    43.74
+  ],
+  "Algeria": [
+    2.45,
+    29.25
+  ],
+  "Mozambique": [
+    35.29,
+    -17.72
+  ],
+  "eSwatini": [
+    31.47,
+    -26.4
+  ],
+  "Burundi": [
+    30.12,
+    -3.03
+  ],
+  "Rwanda": [
+    29.8,
+    -2.1
+  ],
+  "Myanmar": [
+    96.93,
+    15.52
+  ],
+  "Bangladesh": [
+    90.64,
+    22.65
+  ],
+  "Andorra": [
+    1.58,
+    42.51
+  ],
+  "Afghanistan": [
+    67.51,
+    34.9
+  ],
+  "Montenegro": [
+    19.21,
+    42.67
+  ],
+  "Bosnia and Herzegovina": [
+    18.12,
+    43.95
+  ],
+  "Uganda": [
+    32.21,
+    1.62
+  ],
+  "US Naval Base Guantanamo Bay": [
+    -75.15,
+    19.93
+  ],
+  "Cuba": [
+    -79.85,
+    22.04
+  ],
+  "Honduras": [
+    -86.6,
+    14.99
+  ],
+  "Ecuador": [
+    -85.38,
+    -0.69
+  ],
+  "Colombia": [
+    -75.33,
+    5.56
+  ],
+  "Paraguay": [
+    -58.12,
+    -23.72
+  ],
+  "Brazilian Island": [
+    -57.63,
+    -30.19
+  ],
+  "Portugal": [
+    -17.62,
+    37.37
+  ],
+  "Moldova": [
+    28.43,
+    47.24
+  ],
+  "Turkmenistan": [
+    57.27,
+    39.48
+  ],
+  "Jordan": [
+    37.1,
+    31.61
+  ],
+  "Nepal": [
+    84.96,
+    28.14
+  ],
+  "Lesotho": [
+    28.38,
+    -29.53
+  ],
+  "Cameroon": [
+    12.49,
+    6.93
+  ],
+  "Gabon": [
+    10.99,
+    -0.66
+  ],
+  "Niger": [
+    6.75,
+    15.38
+  ],
+  "Burkina Faso": [
+    -1.4,
+    12.4
+  ],
+  "Togo": [
+    0.65,
+    9.2
+  ],
+  "Ghana": [
+    -0.65,
+    8.19
+  ],
+  "Guinea-Bissau": [
+    -15.69,
+    11.52
+  ],
+  "Gibraltar": [
+    -5.35,
+    36.13
+  ],
+  "USA": [
+    -98.5,
+    39.5
+  ],
+  "Canada": [
+    -106.3,
+    56.1
+  ],
+  "Mexico": [
+    -106.58,
+    24.58
+  ],
+  "Belize": [
+    -88.14,
+    17.64
+  ],
+  "Panama": [
+    -80.83,
+    8.43
+  ],
+  "Venezuela": [
+    -64.85,
+    9.66
+  ],
+  "Papua New Guinea": [
+    149.43,
+    -6.22
+  ],
+  "Egypt": [
+    33.16,
+    27.67
+  ],
+  "Yemen": [
+    47.67,
+    14.23
+  ],
+  "Mauritania": [
+    -13.35,
+    19.5
+  ],
+  "Equatorial Guinea": [
+    8.4,
+    1.32
+  ],
+  "Gambia": [
+    -15.76,
+    13.38
+  ],
+  "Hong Kong S.A.R.": [
+    114.11,
+    22.29
+  ],
+  "Vatican": [
+    12.45,
+    41.9
+  ],
+  "Northern Cyprus": [
+    33.31,
+    35.23
+  ],
+  "Cyprus No Mans Area": [
+    33.32,
+    35.11
+  ],
+  "Siachen Glacier": [
+    77.17,
+    35.34
+  ],
+  "Baykonur Cosmodrome": [
+    63.36,
+    45.9
+  ],
+  "Akrotiri Sovereign Base Area": [
+    32.93,
+    34.65
+  ],
+  "Southern Patagonian Ice Field": [
+    -73.31,
+    -49.53
+  ],
+  "Bir Tawil": [
+    33.5,
+    21.93
+  ],
+  "Antarctica": [
+    -22.63,
+    -71.79
+  ],
+  "Australia": [
+    133.8,
+    -25.3
+  ],
+  "Greenland": [
+    -42,
+    72
+  ],
+  "Fiji": [
+    37.08,
+    -17.76
+  ],
+  "New Zealand": [
+    128.18,
+    -40.38
+  ],
+  "New Caledonia": [
+    166.5,
+    -21.15
+  ],
+  "Madagascar": [
+    47.53,
+    -16.27
+  ],
+  "Philippines": [
+    122.27,
+    11.19
+  ],
+  "Sri Lanka": [
+    80.42,
+    8.53
+  ],
+  "Curaçao": [
+    -68.94,
+    12.2
+  ],
+  "Aruba": [
+    -70,
+    12.54
+  ],
+  "The Bahamas": [
+    -76.44,
+    24.15
+  ],
+  "Turks and Caicos Islands": [
+    -71.78,
+    21.63
+  ],
+  "Taiwan": [
+    120.25,
+    23.5
+  ],
+  "Japan": [
+    134.34,
+    32.88
+  ],
+  "Saint Pierre and Miquelon": [
+    -56.23,
+    46.89
+  ],
+  "Iceland": [
+    -19.08,
+    65.33
+  ],
+  "Pitcairn Islands": [
+    -128.49,
+    -24.5
+  ],
+  "French Polynesia": [
+    -143.76,
+    -17.04
+  ],
+  "French Southern and Antarctic Lands": [
+    62.13,
+    -39.74
+  ],
+  "Seychelles": [
+    54.08,
+    -5.51
+  ],
+  "Kiribati": [
+    47.92,
+    -1.03
+  ],
+  "Marshall Islands": [
+    169.36,
+    8.15
+  ],
+  "Trinidad and Tobago": [
+    -61.06,
+    10.77
+  ],
+  "Grenada": [
+    -61.55,
+    12.29
+  ],
+  "Saint Vincent and the Grenadines": [
+    -61.27,
+    12.89
+  ],
+  "Barbados": [
+    -59.5,
+    13.18
+  ],
+  "Saint Lucia": [
+    -60.96,
+    13.95
+  ],
+  "Dominica": [
+    -61.37,
+    15.36
+  ],
+  "United States Minor Outlying Islands": [
+    -137.36,
+    12.12
+  ],
+  "Montserrat": [
+    -62.16,
+    16.75
+  ],
+  "Antigua and Barbuda": [
+    -61.99,
+    17.21
+  ],
+  "Saint Kitts and Nevis": [
+    -62.64,
+    17.24
+  ],
+  "United States Virgin Islands": [
+    -64.78,
+    18.14
+  ],
+  "Saint Barthelemy": [
+    -62.84,
+    17.9
+  ],
+  "Puerto Rico": [
+    -66.23,
+    18.17
+  ],
+  "Anguilla": [
+    -63.18,
+    18.32
+  ],
+  "British Virgin Islands": [
+    -64.53,
+    18.49
+  ],
+  "Jamaica": [
+    -77.07,
+    18.09
+  ],
+  "Cayman Islands": [
+    -80.37,
+    19.58
+  ],
+  "Bermuda": [
+    -64.79,
+    32.31
+  ],
+  "Heard Island and McDonald Islands": [
+    73.57,
+    -53.06
+  ],
+  "Saint Helena": [
+    -10.58,
+    -25.33
+  ],
+  "Mauritius": [
+    59.08,
+    -17.04
+  ],
+  "Comoros": [
+    43.84,
+    -12.07
+  ],
+  "São Tomé and Principe": [
+    7.02,
+    0.94
+  ],
+  "Cabo Verde": [
+    -24.11,
+    16.08
+  ],
+  "Malta": [
+    14.36,
+    35.98
+  ],
+  "Jersey": [
+    -2.12,
+    49.23
+  ],
+  "Guernsey": [
+    -2.4,
+    49.52
+  ],
+  "Isle of Man": [
+    -4.56,
+    54.16
+  ],
+  "Aland": [
+    20.51,
+    60.14
+  ],
+  "Faroe Islands": [
+    -6.8,
+    62.12
+  ],
+  "Indian Ocean Territories": [
+    99.81,
+    -11.61
+  ],
+  "British Indian Ocean Territory": [
+    71.84,
+    -6.04
+  ],
+  "Singapore": [
+    103.86,
+    1.36
+  ],
+  "Norfolk Island": [
+    167.96,
+    -29.04
+  ],
+  "Cook Islands": [
+    -159.38,
+    -17.01
+  ],
+  "Tonga": [
+    -174.85,
+    -19.67
+  ],
+  "Wallis and Futuna": [
+    -177.14,
+    -13.77
+  ],
+  "Samoa": [
+    -172.07,
+    -13.8
+  ],
+  "Solomon Islands": [
+    160.28,
+    -9.02
+  ],
+  "Tuvalu": [
+    178.11,
+    -7.57
+  ],
+  "Maldives": [
+    73.2,
+    4.23
+  ],
+  "Nauru": [
+    166.94,
+    -0.51
+  ],
+  "Federated States of Micronesia": [
+    152.34,
+    6.11
+  ],
+  "South Georgia and the Islands": [
+    -30.04,
+    -56.83
+  ],
+  "Falkland Islands": [
+    -59.81,
+    -51.69
+  ],
+  "Vanuatu": [
+    167.88,
+    -15.92
+  ],
+  "Niue": [
+    -169.88,
+    -19.03
+  ],
+  "American Samoa": [
+    -169.81,
+    -13.65
+  ],
+  "Palau": [
+    133.53,
+    6.17
+  ],
+  "Guam": [
+    144.77,
+    13.49
+  ],
+  "Northern Mariana Islands": [
+    145.57,
+    17.45
+  ],
+  "Bahrain": [
+    50.67,
+    25.89
+  ],
+  "Coral Sea Islands": [
+    154.39,
+    -21.03
+  ],
+  "Spratly Islands": [
+    114.73,
+    10.4
+  ],
+  "Clipperton Island": [
+    -109.22,
+    10.3
+  ],
+  "Macao S.A.R": [
+    113.55,
+    22.17
+  ],
+  "Ashmore and Cartier Islands": [
+    123.6,
+    -12.43
+  ],
+  "Bajo Nuevo Bank (Petrel Is.)": [
+    -79.99,
+    15.79
+  ],
+  "Serranilla Bank": [
+    -78.64,
+    15.86
+  ],
+  "Scarborough Reef": [
+    117.75,
+    15.15
+  ],
+  "United States": [
+    -98.5,
+    39.5
+  ]
+}
