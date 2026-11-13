@@ -47,8 +47,8 @@ function Panel({
       className={`panel ${wide ? 'wide' : ''} ${bgImage ? 'has-bg-image' : ''} ${className}`}
       style={bgImage ? { backgroundImage: `url('${bgImage}')` } : undefined}
     >
-      <div className="flex items-center justify-between mb-3 relative z-10">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between mb-3 relative z-10 flex-wrap gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="panel-title mb-0">{title}</span>
           {badge && (
             <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#65d9ff]/15 text-[#65d9ff] border border-[#65d9ff]/30">
@@ -56,7 +56,7 @@ function Panel({
             </span>
           )}
         </div>
-        {tools && <div className="flex items-center gap-2">{tools}</div>}
+        {tools && <div className="flex items-center gap-2 flex-wrap">{tools}</div>}
       </div>
       <div className="relative z-10">{children}</div>
     </section>
@@ -152,7 +152,7 @@ export default function App() {
         setRows(joined);
         setDefaultRows(joined);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -389,29 +389,29 @@ export default function App() {
       grid: { left: 45, right: 25, top: 28, bottom: 40, containLabel: true },
       xAxis: x
         ? {
-            type: 'category',
-            data: x,
-            axisLabel: { color: textColor, fontSize: 11 },
-            axisLine: { lineStyle: { color: splitLineColor } }
-          }
+          type: 'category',
+          data: x,
+          axisLabel: { color: textColor, fontSize: 11 },
+          axisLine: { lineStyle: { color: splitLineColor } }
+        }
         : {
-            type: 'value',
-            axisLabel: { color: textColor, fontSize: 11 },
-            splitLine: { lineStyle: { color: splitLineColor } }
-          },
+          type: 'value',
+          axisLabel: { color: textColor, fontSize: 11 },
+          splitLine: { lineStyle: { color: splitLineColor } }
+        },
       yAxis: x
         ? {
-            type: 'value',
-            name: yAxisLabel,
-            nameTextStyle: { color: textColor, fontSize: 10 },
-            axisLabel: { color: textColor, fontSize: 11 },
-            splitLine: { lineStyle: { color: splitLineColor } }
-          }
+          type: 'value',
+          name: yAxisLabel,
+          nameTextStyle: { color: textColor, fontSize: 10 },
+          axisLabel: { color: textColor, fontSize: 11 },
+          splitLine: { lineStyle: { color: splitLineColor } }
+        }
         : {
-            type: 'category',
-            axisLabel: { color: textColor, fontSize: 11 },
-            axisLine: { show: false }
-          },
+          type: 'category',
+          axisLabel: { color: textColor, fontSize: 11 },
+          axisLine: { show: false }
+        },
       series,
       ...extra
     };
@@ -503,8 +503,8 @@ export default function App() {
         analyticsConfig.refLineMode === 'average'
           ? { type: 'average', name: `Avg: ${avg}`, lineStyle: { color: '#65d9ff', type: 'dashed' as const } }
           : analyticsConfig.refLineMode === 'median'
-          ? { yAxis: median, name: `Median: ${median}`, lineStyle: { color: '#ffbf69', type: 'dashed' as const } }
-          : { yAxis: analyticsConfig.customRefValue, name: `Custom: ${analyticsConfig.customRefValue}`, lineStyle: { color: '#df7cff', type: 'dashed' as const } }
+            ? { yAxis: median, name: `Median: ${median}`, lineStyle: { color: '#ffbf69', type: 'dashed' as const } }
+            : { yAxis: analyticsConfig.customRefValue, name: `Custom: ${analyticsConfig.customRefValue}`, lineStyle: { color: '#df7cff', type: 'dashed' as const } }
       ],
       label: { color: '#cfd8ed', fontSize: 10, position: 'insideEndTop' }
     };
@@ -924,78 +924,78 @@ export default function App() {
             option={
               hierarchyState.timeLevel === 'month'
                 ? chartOption(
-                    [
-                      {
-                        name: 'Monthly Missions',
-                        type: 'bar',
-                        data: monthlySeasonality.map(x => x[1]),
-                        itemStyle: { color: '#65d9ff', borderRadius: [6, 6, 0, 0] }
-                      },
-                      {
-                        name: 'Successful',
-                        type: 'line',
-                        smooth: true,
-                        data: monthlySeasonality.map(x => x[2]),
-                        lineStyle: { color: '#5ee5ad', width: 3 }
-                      }
-                    ],
-                    monthlySeasonality.map(x => x[0]),
-                    'Launches'
-                  )
+                  [
+                    {
+                      name: 'Monthly Missions',
+                      type: 'bar',
+                      data: monthlySeasonality.map(x => x[1]),
+                      itemStyle: { color: '#65d9ff', borderRadius: [6, 6, 0, 0] }
+                    },
+                    {
+                      name: 'Successful',
+                      type: 'line',
+                      smooth: true,
+                      data: monthlySeasonality.map(x => x[2]),
+                      lineStyle: { color: '#5ee5ad', width: 3 }
+                    }
+                  ],
+                  monthlySeasonality.map(x => x[0]),
+                  'Launches'
+                )
                 : chartOption(
-                    [
-                      {
-                        name: 'All Missions',
-                        type: 'line',
-                        smooth: true,
-                        data: annual.map(x => x[1]),
-                        areaStyle: { color: 'rgba(101,217,255,.12)' },
-                        lineStyle: { color: '#65d9ff', width: 3 },
-                        symbolSize: 6,
-                        markLine: referenceMarkLine
-                      },
-                      {
-                        name: 'Successful Launches',
-                        type: 'line',
-                        smooth: true,
-                        data: annual.map(x => x[2]),
-                        lineStyle: { color: '#a98bff', width: 2 }
-                      },
-                      ...(analyticsConfig.enableForecast && forecastData.length
-                        ? [
-                            {
-                              name: '5Y Forecast',
-                              type: 'line',
-                              data: [
-                                ...Array(annual.length - 1).fill(null),
-                                annual[annual.length - 1][1],
-                                ...forecastData.map(f => f.forecast)
-                              ],
-                              lineStyle: { color: '#ffbf69', type: 'dashed' as const, width: 2 },
-                              itemStyle: { color: '#ffbf69' }
-                            },
-                            {
-                              name: 'Confidence Range',
-                              type: 'line',
-                              data: [
-                                ...Array(annual.length - 1).fill(null),
-                                annual[annual.length - 1][1],
-                                ...forecastData.map(f => f.upper)
-                              ],
-                              lineStyle: { opacity: 0 },
-                              areaStyle: { color: 'rgba(255, 191, 105, 0.15)' },
-                              stack: 'confidence-band',
-                              symbol: 'none'
-                            }
-                          ]
-                        : [])
-                    ],
-                    [
-                      ...annual.map(x => String(x[0])),
-                      ...(analyticsConfig.enableForecast ? forecastData.map(f => String(f.year)) : [])
-                    ],
-                    'Launches'
-                  )
+                  [
+                    {
+                      name: 'All Missions',
+                      type: 'line',
+                      smooth: true,
+                      data: annual.map(x => x[1]),
+                      areaStyle: { color: 'rgba(101,217,255,.12)' },
+                      lineStyle: { color: '#65d9ff', width: 3 },
+                      symbolSize: 6,
+                      markLine: referenceMarkLine
+                    },
+                    {
+                      name: 'Successful Launches',
+                      type: 'line',
+                      smooth: true,
+                      data: annual.map(x => x[2]),
+                      lineStyle: { color: '#a98bff', width: 2 }
+                    },
+                    ...(analyticsConfig.enableForecast && forecastData.length
+                      ? [
+                        {
+                          name: '5Y Forecast',
+                          type: 'line',
+                          data: [
+                            ...Array(annual.length - 1).fill(null),
+                            annual[annual.length - 1][1],
+                            ...forecastData.map(f => f.forecast)
+                          ],
+                          lineStyle: { color: '#ffbf69', type: 'dashed' as const, width: 2 },
+                          itemStyle: { color: '#ffbf69' }
+                        },
+                        {
+                          name: 'Confidence Range',
+                          type: 'line',
+                          data: [
+                            ...Array(annual.length - 1).fill(null),
+                            annual[annual.length - 1][1],
+                            ...forecastData.map(f => f.upper)
+                          ],
+                          lineStyle: { opacity: 0 },
+                          areaStyle: { color: 'rgba(255, 191, 105, 0.15)' },
+                          stack: 'confidence-band',
+                          symbol: 'none'
+                        }
+                      ]
+                      : [])
+                  ],
+                  [
+                    ...annual.map(x => String(x[0])),
+                    ...(analyticsConfig.enableForecast ? forecastData.map(f => String(f.year)) : [])
+                  ],
+                  'Launches'
+                )
             }
           />
         </Panel>
@@ -1300,8 +1300,8 @@ export default function App() {
                   heatmapMode === 'country-year'
                     ? locations.slice(0, 12).map(x => x[0])
                     : heatmapMode === 'org-year'
-                    ? orgs.slice(0, 12).map(x => x[0])
-                    : [...MONTH_NAMES],
+                      ? orgs.slice(0, 12).map(x => x[0])
+                      : [...MONTH_NAMES],
                 axisLabel: { color: '#9ba9c9', fontSize: 10 }
               },
               visualMap: {
@@ -1319,21 +1319,21 @@ export default function App() {
                   data:
                     heatmapMode === 'country-year'
                       ? locations.slice(0, 12).flatMap(([c], yi) =>
-                          annual.map(([y], xi) => [
-                            xi,
-                            yi,
-                            filtered.filter(r => r.country === c && r.year === y).length
-                          ])
-                        )
+                        annual.map(([y], xi) => [
+                          xi,
+                          yi,
+                          filtered.filter(r => r.country === c && r.year === y).length
+                        ])
+                      )
                       : heatmapMode === 'org-year'
-                      ? orgs.slice(0, 12).flatMap(([o], yi) =>
+                        ? orgs.slice(0, 12).flatMap(([o], yi) =>
                           annual.map(([y], xi) => [
                             xi,
                             yi,
                             filtered.filter(r => r.company === o && r.year === y).length
                           ])
                         )
-                      : MONTH_NAMES.flatMap((m, yi) =>
+                        : MONTH_NAMES.flatMap((m, yi) =>
                           annual.map(([y], xi) => [
                             xi,
                             yi,
@@ -1554,14 +1554,14 @@ export default function App() {
                   },
                   ...(analyticsConfig.enableTrendLine && scatterData.trendLine.length
                     ? [
-                        {
-                          name: 'Linear Trend Line',
-                          type: 'line' as const,
-                          showSymbol: false,
-                          data: scatterData.trendLine,
-                          lineStyle: { color: '#65d9ff', width: 2, type: 'dashed' as const }
-                        }
-                      ]
+                      {
+                        name: 'Linear Trend Line',
+                        type: 'line' as const,
+                        showSymbol: false,
+                        data: scatterData.trendLine,
+                        lineStyle: { color: '#65d9ff', width: 2, type: 'dashed' as const }
+                      }
+                    ]
                     : [])
                 ]
               }}
@@ -1653,34 +1653,36 @@ export default function App() {
 
       {/* Complete Filtered Mission Log Explorer */}
       <section id="explore" className="table-panel">
-        <div>
-          <p className="panel-title">COMPLETE FILTERED MISSION LOG</p>
-          <p className="caption">
-            {filtered.length.toLocaleString()} records · searchable, multi-column sorted, and exportable
-          </p>
-        </div>
+        <div className="table-header">
+          <div>
+            <p className="panel-title mb-1">COMPLETE FILTERED MISSION LOG</p>
+            <p className="caption mb-0">
+              {filtered.length.toLocaleString()} records · searchable, multi-column sorted, and exportable
+            </p>
+          </div>
 
-        <div className="table-tools">
-          <label>
-            <Search size={15} />
-            <input
-              placeholder="Search missions, rockets, sites..."
-              value={search}
-              onChange={e => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
-            />
-          </label>
-          <select value={sort} onChange={e => setSort(e.target.value as any)}>
-            <option value="year">Sort by Year</option>
-            <option value="company">Sort by Organization</option>
-            <option value="outcome">Sort by Outcome</option>
-            <option value="cost">Sort by Cost ($M)</option>
-          </select>
-          <button onClick={download}>
-            <Download size={14} /> Export CSV
-          </button>
+          <div className="table-tools">
+            <label>
+              <Search size={15} />
+              <input
+                placeholder="Search missions, rockets, sites..."
+                value={search}
+                onChange={e => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </label>
+            <select value={sort} onChange={e => setSort(e.target.value as any)}>
+              <option value="year">Sort by Year</option>
+              <option value="company">Sort by Organization</option>
+              <option value="outcome">Sort by Outcome</option>
+              <option value="cost">Sort by Cost ($M)</option>
+            </select>
+            <button onClick={download}>
+              <Download size={14} /> Export CSV
+            </button>
+          </div>
         </div>
 
         <div className="table-wrap">

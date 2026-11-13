@@ -351,7 +351,7 @@ export default function WorldMap({
         // 1. Realistic Country Boundaries & Interactive Selection
         {
           name: 'World Countries',
-          type: 'map' as const,
+          type: 'map',
           map: 'world',
           geoIndex: 0,
           data: Object.entries(countryCounts).map(([name, data]) => ({
@@ -362,14 +362,14 @@ export default function WorldMap({
         // 2. Realistic Country Labels matching the Geology.com reference image
         {
           name: 'Country Labels',
-          type: 'scatter' as const,
-          coordinateSystem: 'geo' as const,
+          type: 'scatter',
+          coordinateSystem: 'geo',
           data: labelPoints,
           symbolSize: 1,
           label: {
             show: true,
             formatter: (p: any) => p.data.displayName || p.data.name,
-            position: 'inside' as const,
+            position: 'inside',
             color: isPolitical ? '#22384f' : '#cfd8ed',
             fontSize: 10,
             fontWeight: 700,
@@ -382,19 +382,19 @@ export default function WorldMap({
         // 3. Spaceport Beacons (EffectScatter with Radar Pulses)
         {
           name: 'Global Spaceports',
-          type: 'effectScatter' as const,
-          coordinateSystem: 'geo' as const,
+          type: 'effectScatter',
+          coordinateSystem: 'geo',
           data: spaceportPoints,
           symbolSize: (val: any) => Math.max(7, Math.min(16, 7 + Math.sqrt(val[2] || 0) * 0.4)),
           showEffectOn: 'render',
           rippleEffect: {
-            brushType: 'stroke' as const,
+            brushType: 'stroke',
             scale: 3,
             period: 3
           },
           zlevel: 3
         }
-      ]
+      ] as any
     };
 
     chart.setOption(option, true);
@@ -455,11 +455,10 @@ export default function WorldMap({
           <div className="flex items-center gap-1 bg-[#0d1c3e] p-0.5 rounded-lg border border-[rgba(181,210,255,0.15)] text-[10px] font-mono">
             <button
               onClick={() => setMapStyle('political')}
-              className={`px-3 py-1 rounded transition flex items-center gap-1.5 ${
-                mapStyle === 'political'
-                  ? 'bg-[#2b599f] text-white font-semibold shadow'
-                  : 'text-[#9ba9c9] hover:text-white'
-              }`}
+              className={`px-3 py-1 rounded transition flex items-center gap-1.5 ${mapStyle === 'political'
+                ? 'bg-[#2b599f] text-white font-semibold shadow'
+                : 'text-[#9ba9c9] hover:text-white'
+                }`}
               title="Accurate Cartographic Political Map Matching Reference Image"
             >
               <Compass size={12} className={mapStyle === 'political' ? 'text-[#fced86]' : ''} />
@@ -467,11 +466,10 @@ export default function WorldMap({
             </button>
             <button
               onClick={() => setMapStyle('dark')}
-              className={`px-3 py-1 rounded transition flex items-center gap-1.5 ${
-                mapStyle === 'dark'
-                  ? 'bg-[#2b599f] text-white font-semibold shadow'
-                  : 'text-[#9ba9c9] hover:text-white'
-              }`}
+              className={`px-3 py-1 rounded transition flex items-center gap-1.5 ${mapStyle === 'dark'
+                ? 'bg-[#2b599f] text-white font-semibold shadow'
+                : 'text-[#9ba9c9] hover:text-white'
+                }`}
               title="Liquid-Glass Dark Orbital Theme"
             >
               <Sparkles size={12} className={mapStyle === 'dark' ? 'text-[#65d9ff]' : ''} />
@@ -479,11 +477,10 @@ export default function WorldMap({
             </button>
             <button
               onClick={() => setMapStyle('image-ref')}
-              className={`px-3 py-1 rounded transition flex items-center gap-1.5 ${
-                mapStyle === 'image-ref'
-                  ? 'bg-[#2b599f] text-white font-semibold shadow'
-                  : 'text-[#9ba9c9] hover:text-white'
-              }`}
+              className={`px-3 py-1 rounded transition flex items-center gap-1.5 ${mapStyle === 'image-ref'
+                ? 'bg-[#2b599f] text-white font-semibold shadow'
+                : 'text-[#9ba9c9] hover:text-white'
+                }`}
               title="Direct Visual Reference Image View"
             >
               <Eye size={12} />
@@ -521,7 +518,7 @@ export default function WorldMap({
       {/* Map Presentation Stage */}
       <div className="relative w-full">
         {mapStyle === 'image-ref' ? (
-          <div className="relative w-full h-[450px] overflow-hidden bg-[#0c1f3d] flex items-center justify-center p-2">
+          <div className="relative w-full h-[380px] sm:h-[450px] overflow-hidden bg-[#0c1f3d] flex items-center justify-center p-2">
             <img
               src="/images/world_map_reference.jpg"
               alt="World Political Reference Map"
@@ -534,8 +531,8 @@ export default function WorldMap({
         ) : (
           <div
             ref={containerRef}
-            className="w-full h-[450px]"
-            style={{ minHeight: 450 }}
+            className="w-full h-[380px] sm:h-[450px]"
+            style={{ minHeight: 380 }}
           />
         )}
       </div>
@@ -556,11 +553,10 @@ export default function WorldMap({
                 <button
                   key={cName}
                   onClick={() => onSelectCountry(isSelected ? 'All' : cName)}
-                  className={`text-[10px] font-mono px-2.5 py-1 rounded-md border transition flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-[#5ee5ad] text-[#071025] font-bold border-[#5ee5ad] shadow-md'
-                      : 'bg-[#101c39]/70 text-[#b5c7e8] border-[rgba(181,210,255,0.15)] hover:border-[#65d9ff]/50'
-                  }`}
+                  className={`text-[10px] font-mono px-2.5 py-1 rounded-md border transition flex items-center gap-1.5 ${isSelected
+                    ? 'bg-[#5ee5ad] text-[#071025] font-bold border-[#5ee5ad] shadow-md'
+                    : 'bg-[#101c39]/70 text-[#b5c7e8] border-[rgba(181,210,255,0.15)] hover:border-[#65d9ff]/50'
+                    }`}
                 >
                   <span>{cName}</span>
                   <span className="text-[9px] opacity-80">({data.count})</span>
